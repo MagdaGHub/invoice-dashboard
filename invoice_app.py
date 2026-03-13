@@ -6,6 +6,22 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+import streamlit as st
+
+PASSWORD = "BlueRidge123"
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    pwd = st.text_input("Enter password", type="password")
+
+    if pwd == PASSWORD:
+        st.session_state.authenticated = True
+        st.rerun()
+    else:
+        st.stop()
+        
 st.set_page_config(
     page_title="Invoice Dashboard",
     page_icon="💰",
