@@ -6,7 +6,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-PASSWORD = st.secrets["APP_PASSWORD"]        
+#PASSWORD = st.secrets["APP_PASSWORD"]        
 st.set_page_config(
     page_title="Invoice Dashboard",
     page_icon="💰",
