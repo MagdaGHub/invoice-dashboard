@@ -7,6 +7,14 @@ import pandas as pd
 import streamlit as st
 
 PASSWORD = st.secrets["APP_PASSWORD"]        
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if not st.session_state.authenticated:
+    pwd = st.text_input("Enter password", type="password")
+    if pwd == PASSWORD:
+        st.session_state.authenticated = True
+        st.rerun()
+    st.stop()
 
 st.set_page_config(
     page_title="Invoice Dashboard",
