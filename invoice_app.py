@@ -1,7 +1,7 @@
 import sqlite3
 from contextlib import closing
 from datetime import date, datetime
-
+from pathlib import Path
 import altair as alt
 import pandas as pd
 import streamlit as st
@@ -903,6 +903,19 @@ def planned_vs_actual_chart(df: pd.DataFrame, x_field: str, title: str):
 # ============================================================
 # TAB RENDERERS
 # ============================================================
+db_file = Path(DB_PATH)
+
+if db_file.exists():
+    with open(db_file, "rb") as f:
+        st.download_button(
+            label="Download Database Backup",
+            data=f,
+            file_name="VendorInvoices_backup.sqlite",
+            mime="application/x-sqlite3",
+        )
+else:
+    st.warning("Database file not found.")
+
 def render_dashboard_tab(
     projects: pd.DataFrame,
     vendors: pd.DataFrame,
