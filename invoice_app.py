@@ -23,50 +23,19 @@ if "authenticated" not in st.session_state:
 # ---------- STYLE ----------
 st.markdown("""
 <style>
-/* Fully remove Streamlit header/toolbar area */
-header {
+header, [data-testid="stHeader"], [data-testid="stToolbar"], #MainMenu, footer {
     display: none !important;
 }
-[data-testid="stHeader"] {
+/* Hide sidebar/navigation on login page */
+[data-testid="stSidebar"] {
     display: none !important;
 }
-[data-testid="stToolbar"] {
-    display: none !important;
-}
-#MainMenu {
-    display: none !important;
-}
-footer {
-    display: none !important;
-}
-/* Pull page content upward */
+/* Remove extra top gap */
 [data-testid="stAppViewContainer"] > .main {
-    padding-top: 0rem !important;
+    padding-top: 0 !important;
 }
 .block-container {
-    padding-top: 0rem !important;
-    margin-top: 0rem !important;
-}
-body {
-    background-color: #f5f7fb;
-}
-.login-card {
-    background: white;
-    padding: 40px;
-    border-radius: 12px;
-    border: 1px solid #e6e6e6;
-    box-shadow: 0px 8px 20px rgba(0,0,0,0.05);
-}
-.login-title {
-    text-align: center;
-    font-size: 28px;
-    font-weight: 600;
-    margin-bottom: 10px;
-}
-.login-sub {
-    text-align: center;
-    color: #666;
-    margin-bottom: 25px;
+    padding-top: 0.5rem !important;
 }
 </style>
 """, unsafe_allow_html=True)
