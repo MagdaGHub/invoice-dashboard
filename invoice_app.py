@@ -6,6 +6,34 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+st.set_page_config(
+    page_title="Invoice Dashboard",
+    page_icon="💰",
+    layout="wide"
+)
+ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
+
+if "is_admin" not in st.session_state:
+    st.session_state.is_admin = False
+
+with st.sidebar:
+    st.markdown("### Access")
+    admin_pwd = st.text_input("Admin password", type="password")
+    if st.button("Unlock admin mode"):
+        if admin_pwd == ADMIN_PASSWORD:
+            st.session_state.is_admin = True
+            st.success("Admin mode enabled")
+            st.rerun()
+        else:
+            st.error("Incorrect password")
+
+    if st.session_state.is_admin:
+        if st.button("Lock admin mode"):
+            st.session_state.is_admin = False
+            st.rerun()
+
+READ_ONLY = not st.session_state.is_admin
+
 PASSWORD = st.secrets["APP_PASSWORD"]        
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -16,11 +44,7 @@ if not st.session_state.authenticated:
         st.rerun()
     st.stop()
 
-st.set_page_config(
-    page_title="Invoice Dashboard",
-    page_icon="💰",
-    layout="wide"
-)
+
 
 # ============================================================
 # CONFIG
