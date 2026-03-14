@@ -37,14 +37,75 @@ READ_ONLY = not st.session_state.is_admin
 PASSWORD = st.secrets["APP_PASSWORD"]        
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
+
+# ---------- STYLE ----------
+st.markdown("""
+<style>
+
+body {
+    background-color: #f5f7fb;
+}
+
+.login-card {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    border: 1px solid #e6e6e6;
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.05);
+}
+
+.login-title {
+    text-align:center;
+    font-size:28px;
+    font-weight:600;
+    margin-bottom:10px;
+}
+
+.login-sub {
+    text-align:center;
+    color:#666;
+    margin-bottom:25px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ---------- LOGIN ----------
 if not st.session_state.authenticated:
-    pwd = st.text_input("Enter password", type="password")
-    if pwd == PASSWORD:
-        st.session_state.authenticated = True
-        st.rerun()
+
+    c1, c2, c3 = st.columns([1,1.6,1])
+
+    with c2:
+
+        st.markdown('<div class="login-card">', unsafe_allow_html=True)
+
+        st.markdown('<div class="login-title">🔒 Invoice Dashboard</div>', unsafe_allow_html=True)
+
+        st.markdown(
+            '<div class="login-sub">Authorized viewers only. Enter password to access project financial dashboard.</div>',
+            unsafe_allow_html=True
+        )
+
+        pwd = st.text_input(
+            "Password",
+            type="password",
+            placeholder="Enter access password",
+            label_visibility="collapsed"
+        )
+
+        if st.button("Access Dashboard", use_container_width=True):
+
+            if pwd == PASSWORD:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Incorrect password")
+
+        st.caption("If you need access, please contact the dashboard owner.")
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
     st.stop()
-
-
 
 # ============================================================
 # CONFIG
