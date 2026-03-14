@@ -1212,7 +1212,7 @@ def render_new_transaction_tab(
      if READ_ONLY:
         st.info("Read-only mode: adding transactions is disabled for shared viewers.")
         return
-    st.subheader("Add New Transaction")
+     st.subheader("Add New Transaction")
 
     if (
         projects.empty
