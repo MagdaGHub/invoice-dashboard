@@ -1429,7 +1429,7 @@ def render_transactions_tab(
         grid,
         use_container_width=True,
         hide_index=True,
-        disabled=TRUE if READ_ONLY else [
+        disabled=True if READ_ONLY else [
             "transaction_id",
             "project_name",
             "category",
