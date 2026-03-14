@@ -1203,15 +1203,15 @@ def render_dashboard_tab(
 
 
 def render_new_transaction_tab(
-    if READ_ONLY:
-        st.info("Read-only mode: adding transactions is disabled for shared viewers.")
-        return
     projects: pd.DataFrame,
     vendors: pd.DataFrame,
     categories: pd.DataFrame,
     phases: pd.DataFrame,
     line_items: pd.DataFrame,
 ) -> None:
+     if READ_ONLY:
+        st.info("Read-only mode: adding transactions is disabled for shared viewers.")
+        return
     st.subheader("Add New Transaction")
 
     if (
