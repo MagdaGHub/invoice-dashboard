@@ -10,8 +10,9 @@ st.set_page_config(
     page_title="Invoice Dashboard",
     page_icon="💰",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
 )
+
 ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
 APP_PASSWORD = st.secrets["APP_PASSWORD"] 
 
@@ -28,11 +29,14 @@ if not st.session_state.authenticated:
     header,
     [data-testid="stHeader"],
     [data-testid="stToolbar"],
+    [data-testid="stSidebar"],
+    [data-testid="stSidebarNav"],
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapsedControl"],
     #MainMenu,
     footer {
         display: none !important;
     }
-
     section[data-testid="stSidebar"] {
         display: none !important;
     }
@@ -53,20 +57,16 @@ if not st.session_state.authenticated:
         position: absolute !important;
         pointer-events: none !important;
     }
-
     [data-testid="stAppViewContainer"] > .main {
         padding-top: 0 !important;
     }
-
     .block-container {
         padding-top: 1.5rem !important;
         max-width: 1200px;
     }
-
     body {
         background-color: #f5f7fb;
     }
-
     .login-card {
         background: white;
         padding: 40px;
@@ -74,14 +74,12 @@ if not st.session_state.authenticated:
         border: 1px solid #e6e6e6;
         box-shadow: 0px 8px 20px rgba(0,0,0,0.05);
     }
-
     .login-title {
         text-align: center;
         font-size: 28px;
         font-weight: 600;
         margin-bottom: 10px;
     }
-
     .login-sub {
         text-align: center;
         color: #666;
@@ -94,7 +92,9 @@ if not st.session_state.authenticated:
 
     with c2:
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
-        st.markdown('<div class="login-title">🔒 Invoice Dashboard</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="login-title">🔒 Invoice Dashboard</div>', 
+            unsafe_allow_html=True),
         st.markdown(
             '<div class="login-sub">Authorized viewers only. Enter password to access project financial dashboard.</div>',
             unsafe_allow_html=True)
@@ -129,7 +129,8 @@ if not st.session_state.authenticated:
         st.caption("If you need access, please contact the dashboard owner.")
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
-else:
+    
+#APP STYLING AFTER LOGIN
     st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] > .main {
@@ -150,11 +151,22 @@ else:
     </style>
     """, unsafe_allow_html=True)
     
-# SIDEBAR ONLY AFTER LOGIN
+# ADMIN ACCESS AFTER LOGIN
 top1, top2, top3 = st.columns([6, 2, 2])
 
+with top1:
+    if st.session_state.is_admin:
+        st.success("Admin mode enabled")
+    else:
+        st.caption("Viewer mode")
+                   
 with top2:
-    admin_pwd = st.text_input("Admin password", type="password", key="admin_pwd_main")
+    if not st.session_state.is_admin:
+        admin_pwd = st.text_input(
+            "Admin password",
+            type="password",
+            key="admin_pwd_main",
+        )
 
 with top3:
     if not st.session_state.is_admin:
