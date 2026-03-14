@@ -1454,7 +1454,7 @@ def render_transactions_tab(
         key="txn_editor_safe",
     )
 
-    if st.button("Save inline edits", type="primary"):
+    if not READ_ONLY and st.button("Save inline edits", type="primary"):
         original = grid.set_index("transaction_id")
         new = edited.set_index("transaction_id")
 
