@@ -100,11 +100,13 @@ def init_session_state() -> None:
 # DB HELPERS
 # ============================================================
 def get_connection() -> sqlite3.Connection:
-    con = sqlite3.connect(DB_PATH)
+    if READ_ONLY:
+        con = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    else:
+        con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON;")
     return con
-
 
 def load_df(sql: str, params: tuple = ()) -> pd.DataFrame:
     with closing(get_connection()) as con:
