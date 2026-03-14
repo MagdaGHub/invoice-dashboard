@@ -67,6 +67,17 @@ body {
     margin-bottom:25px;
 }
 
+
+/* Hide Streamlit header */
+header {visibility: hidden;}
+
+/* Hide top toolbar */
+#MainMenu {visibility: hidden;}
+
+/* Remove top spacing */
+.block-container {
+    padding-top: 1rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
