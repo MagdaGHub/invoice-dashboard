@@ -35,19 +35,36 @@ if not st.session_state.authenticated:
     footer {
         display: none !important;
     }
+
+    section[data-testid="stSidebar"] {
+        display: none !important;
+    }
+
+    div[data-testid="collapsedControl"],
+    div[data-testid="stSidebarCollapsedControl"] {
+        display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+    }
+
     [data-testid="stAppViewContainer"] > .main {
-        padding-top: 0rem !important;
+        padding-top: 0 !important;
     }
-    [data-testid="collapsedControl"] {
-    display: none !important;
-    }
+
     .block-container {
         padding-top: 1.5rem !important;
         max-width: 1200px;
     }
+
     body {
         background-color: #f5f7fb;
     }
+
     .login-card {
         background: white;
         padding: 40px;
@@ -55,12 +72,14 @@ if not st.session_state.authenticated:
         border: 1px solid #e6e6e6;
         box-shadow: 0px 8px 20px rgba(0,0,0,0.05);
     }
+
     .login-title {
         text-align: center;
         font-size: 28px;
         font-weight: 600;
         margin-bottom: 10px;
     }
+
     .login-sub {
         text-align: center;
         color: #666;
