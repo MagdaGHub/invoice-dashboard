@@ -14,63 +14,88 @@ st.set_page_config(
 ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
 PASSWORD = st.secrets["APP_PASSWORD"] 
 
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+    
 if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
 
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-# ---------- STYLE ----------
+# STYLE 
 st.markdown("""
 <style>
 header, [data-testid="stHeader"], [data-testid="stToolbar"], #MainMenu, footer {
     display: none !important;
 }
-/* Hide sidebar/navigation on login page */
-[data-testid="stSidebar"] {
-    display: none !important;
-}
-/* Remove extra top gap */
 [data-testid="stAppViewContainer"] > .main {
     padding-top: 0 !important;
 }
 .block-container {
     padding-top: 0.5rem !important;
 }
+body {
+    background-color: #f5f7fb;
+}
+.login-card {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    border: 1px solid #e6e6e6;
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.05);
+}
+.login-title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+.login-sub {
+    text-align: center;
+    color: #666;
+    margin-bottom: 25px;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- LOGIN ----------
+# LOGIN PAGE
 if not st.session_state.authenticated:
-    c1, c2, c3 = st.columns([1,1.6,1])
+    c1, c2, c3 = st.columns([1, 1.6, 1])
 
     with c2:
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
         st.markdown('<div class="login-title">🔒 Invoice Dashboard</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="login-sub">Authorized viewers only. Enter password to access project financial dashboard.</div>',
-            unsafe_allow_html=True
-        )
 
         pwd = st.text_input(
             "Password",
             type="password",
-            placeholder="Enter access password",
+            placeholder="Enter password",
             label_visibility="collapsed"
         )
 
-        if st.button("Access Dashboard", use_container_width=True):
-            if pwd == PASSWORD:
-                st.session_state.authenticated = True
-                st.rerun()
-            else:
-                st.error("Incorrect password")
+        col1, col2 = st.columns(2)
 
-        st.caption("If you need access, please contact the dashboard owner.")
-        st.markdown('</div>', unsafe_allow_html=True)
+        with col1:
+            if st.button("Viewer Access", use_container_width=True):
+                if pwd == APP_PASSWORD:
+                    st.session_state.authenticated = True
+                    st.session_state.is_admin = False
+                    st.rerun()
+                else:
+                    st.error("Incorrect viewer password")
+
+        with col2:
+            if st.button("Admin Access", use_container_width=True):
+                if pwd == ADMIN_PASSWORD:
+                    st.session_state.authenticated = True
+                    st.session_state.is_admin = True
+                    st.rerun()
+                else:
+                    st.error("Incorrect admin password")
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
     st.stop()
-
+    
+# SIDEBAR ONLY AFTER LOGIN
 with st.sidebar:
     st.markdown("### Access")
     admin_pwd = st.text_input("Admin password", type="password")
@@ -452,12 +477,10 @@ def load_phase_budget_vs_actual(project_id: str) -> pd.DataFrame:
         (project_id, project_id),
     )
 
-
 def load_phase_variance(project_id: str) -> pd.DataFrame:
     df = load_phase_budget_vs_actual(project_id).copy()
     df["variance"] = df["actual"] - df["planned"]
     return df
-
 
 def load_line_item_variance_for_phase(
     project_id: str, phase_name: str
@@ -498,7 +521,6 @@ def load_line_item_variance_for_phase(
         (project_id, project_id, phase_name),
     )
 
-
 def load_project_actual_cost_curve(project_id: str) -> pd.DataFrame:
     return load_df(
         """
@@ -513,7 +535,6 @@ def load_project_actual_cost_curve(project_id: str) -> pd.DataFrame:
         """,
         (project_id,),
     )
-
 
 def load_project_daily_spend(project_id: str) -> pd.DataFrame:
     return load_df(
@@ -530,7 +551,6 @@ def load_project_daily_spend(project_id: str) -> pd.DataFrame:
         (project_id,),
     )
 
-
 def load_project_budget_burndown(project_id: str) -> pd.DataFrame:
     return load_df(
         """
@@ -546,7 +566,6 @@ def load_project_budget_burndown(project_id: str) -> pd.DataFrame:
         (project_id,),
     )
 
-
 def load_project_total_budget(project_id: str) -> float:
     df = load_df(
         """
@@ -557,7 +576,6 @@ def load_project_total_budget(project_id: str) -> float:
         (project_id,),
     )
     return float(df.iloc[0]["total_budget"]) if not df.empty else 0.0
-
 
 def load_project_budget_vs_actual() -> pd.DataFrame:
     return load_df(
@@ -592,7 +610,6 @@ def load_project_budget_vs_actual() -> pd.DataFrame:
         ORDER BY p.project_name;
         """
     )
-
 
 def load_project_category_budget_vs_actual(project_id: str) -> pd.DataFrame:
     return load_df(
@@ -670,7 +687,6 @@ def load_project_category_budget_vs_actual(project_id: str) -> pd.DataFrame:
         """,
         (project_id, project_id),
     )
-
 
 def load_project_phase_budget_vs_actual(project_id: str) -> pd.DataFrame:
     return load_df(
@@ -756,7 +772,6 @@ def load_project_phase_budget_vs_actual(project_id: str) -> pd.DataFrame:
         """,
         (project_id, project_id),
     )
-
 
 def load_project_line_item_budget_vs_actual(project_id: str) -> pd.DataFrame:
     return load_df(
@@ -857,7 +872,6 @@ def load_project_line_item_budget_vs_actual(project_id: str) -> pd.DataFrame:
         (project_id, project_id),
     )
 
-
 def load_top_cost_drivers_all_projects() -> pd.DataFrame:
     return load_df(
         """
@@ -884,7 +898,6 @@ def load_top_cost_drivers_all_projects() -> pd.DataFrame:
             actual_amount DESC;
         """
     )
-
 
 # ============================================================
 # CHART HELPERS
@@ -963,7 +976,6 @@ def planned_vs_actual_chart(df: pd.DataFrame, x_field: str, title: str):
     )
 
     return (bars + labels).properties(height=420)
-
 
 # ============================================================
 # TAB RENDERERS
@@ -1362,7 +1374,6 @@ def render_new_transaction_tab(
         if saved:
             st.success("Saved ✅")
             refresh_data()
-
 
 def render_transactions_tab(
     projects: pd.DataFrame,
@@ -2214,7 +2225,6 @@ def render_reports_tab() -> None:
 
         li_chart = (bars + labels).properties(width=width, height=height)
         st.altair_chart(li_chart, use_container_width=True)
-
 
 # ============================================================
 # MAIN APP
