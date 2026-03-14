@@ -925,18 +925,19 @@ def planned_vs_actual_chart(df: pd.DataFrame, x_field: str, title: str):
 # ============================================================
 # TAB RENDERERS
 # ============================================================
+# DB backup download
 db_file = Path(DB_PATH)
-
-if db_file.exists():
-    with open(db_file, "rb") as f:
-        st.download_button(
-            label="Download Database Backup",
-            data=f,
-            file_name="VendorInvoices_backup.sqlite",
-            mime="application/x-sqlite3",
-        )
-else:
-    st.warning("Database file not found.")
+if st.session_state.is_admin:
+    if db_file.exists():
+        with open(db_file, "rb") as f:
+            st.download_button(
+                label="Download Database Backup",
+                data=f,
+                file_name="VendorInvoices_backup.sqlite",
+                mime="application/x-sqlite3",
+            )
+    else:
+        st.warning("Database file not found.")
 
 def render_dashboard_tab(
     projects: pd.DataFrame,
@@ -1202,6 +1203,9 @@ def render_dashboard_tab(
 
 
 def render_new_transaction_tab(
+    if READ_ONLY:
+        st.info("Read-only mode: adding transactions is disabled for shared viewers.")
+        return
     projects: pd.DataFrame,
     vendors: pd.DataFrame,
     categories: pd.DataFrame,
@@ -1282,7 +1286,7 @@ def render_new_transaction_tab(
 
     save_disabled = line_item_id is None or st.session_state.saving_txn
 
-    if st.button("Save Transaction", type="primary", disabled=save_disabled):
+    if not READ_ONLY and st.button("Save Transaction", type="primary", disabled=save_disabled):
         st.session_state.saving_txn = True
 
         if amount <= 0:
@@ -1318,6 +1322,8 @@ def render_new_transaction_tab(
 
 
 def render_transactions_tab(
+    if READ_ONLY:
+        st.info("Read-only mode: editing and deleting transactions is disabled for shared viewers.")
     projects: pd.DataFrame,
     vendors: pd.DataFrame,
     categories: pd.DataFrame,
@@ -1507,7 +1513,7 @@ def render_transactions_tab(
         key="edit_txn_id",
     )
 
-    if st.button("Load transaction", key="load_txn"):
+    if not READ_ONLY and st.button("Load transaction", key="load_txn"):
         tx = load_df(
             """
             SELECT transaction_id, project_id, vendor_id, phase_id, line_item_id
@@ -1612,7 +1618,7 @@ def render_transactions_tab(
                     ),
                 )
 
-        if st.button("Save relational changes", type="primary"):
+        if not READ_ONLY and st.button("Save relational changes", type="primary"):
             saved = exec_sql(
                 """
                 UPDATE transactions
@@ -1632,26 +1638,26 @@ def render_transactions_tab(
                 st.success("Updated relational fields ✅")
                 refresh_data()
 
-    st.markdown("### Delete")
-    del_col1, del_col2 = st.columns([1, 3])
-
-    with del_col1:
-        delete_id = st.number_input(
-            "transaction_id",
-            min_value=1,
-            step=1,
-            key="delete_txn_id",
-        )
-
-    with del_col2:
-        if st.button("Delete transaction"):
-            deleted = exec_sql(
-                "DELETE FROM transactions WHERE transaction_id = ?;",
-                (int(delete_id),),
+    if not READ_ONLY:
+        st.markdown("### Delete")
+        del_col1, del_col2 = st.columns([1, 3])
+    
+        with del_col1:
+            delete_id = st.number_input(
+                "transaction_id",
+                min_value=1,
+                step=1,
+                key="delete_txn_id",
             )
-            if deleted:
-                st.success("Deleted ✅")
-                refresh_data()
+        with del_col2:
+            if not READ_ONLY and st.button("Delete transaction"):
+                deleted = exec_sql(
+                    "DELETE FROM transactions WHERE transaction_id = ?;",
+                    (int(delete_id),),
+                )
+                if deleted:
+                    st.success("Deleted ✅")
+                    refresh_data()
 
 
 def render_reports_tab() -> None:
