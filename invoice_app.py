@@ -9,7 +9,8 @@ import streamlit as st
 st.set_page_config(
     page_title="Invoice Dashboard",
     page_icon="💰",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
 APP_PASSWORD = st.secrets["APP_PASSWORD"] 
@@ -27,10 +28,6 @@ if not st.session_state.authenticated:
     header,
     [data-testid="stHeader"],
     [data-testid="stToolbar"],
-    [data-testid="stSidebar"],
-    [data-testid="stSidebarNav"],
-    [data-testid="collapsedControl"],
-    [data-testid="stSidebarCollapsedControl"],
     #MainMenu,
     footer {
         display: none !important;
@@ -40,16 +37,21 @@ if not st.session_state.authenticated:
         display: none !important;
     }
 
-    div[data-testid="collapsedControl"],
-    div[data-testid="stSidebarCollapsedControl"] {
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"] {
         display: none !important;
-        height: 0 !important;
-        min-height: 0 !important;
+        visibility: hidden !important;
         width: 0 !important;
         min-width: 0 !important;
+        max-width: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
         padding: 0 !important;
         margin: 0 !important;
         overflow: hidden !important;
+        position: absolute !important;
+        pointer-events: none !important;
     }
 
     [data-testid="stAppViewContainer"] > .main {
@@ -149,19 +151,21 @@ else:
     """, unsafe_allow_html=True)
     
 # SIDEBAR ONLY AFTER LOGIN
-with st.sidebar:
-    st.markdown("### Access")
-    admin_pwd = st.text_input("Admin password", type="password")
-    if st.button("Unlock admin mode"):
-        if admin_pwd == ADMIN_PASSWORD:
-            st.session_state.is_admin = True
-            st.success("Admin mode enabled")
-            st.rerun()
-        else:
-            st.error("Incorrect password")
+top1, top2, top3 = st.columns([6, 2, 2])
 
-    if st.session_state.is_admin:
-        if st.button("Lock admin mode"):
+with top2:
+    admin_pwd = st.text_input("Admin password", type="password", key="admin_pwd_main")
+
+with top3:
+    if not st.session_state.is_admin:
+        if st.button("Unlock admin", use_container_width=True):
+            if admin_pwd == ADMIN_PASSWORD:
+                st.session_state.is_admin = True
+                st.rerun()
+            else:
+                st.error("Wrong admin password")
+    else:
+        if st.button("Lock admin", use_container_width=True):
             st.session_state.is_admin = False
             st.rerun()
 
@@ -206,7 +210,6 @@ SESSION_DEFAULTS = {
 }
 
 EDITABLE_TXN_COLUMNS = ["txn_date", "receipt_number", "amount", "notes"]
-
 
 # ============================================================
 # SESSION STATE
