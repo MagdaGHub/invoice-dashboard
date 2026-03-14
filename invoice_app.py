@@ -12,7 +12,7 @@ st.set_page_config(
     layout="wide"
 )
 ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
-PASSWORD = st.secrets["APP_PASSWORD"] 
+APP_PASSWORD = st.secrets["APP_PASSWORD"] 
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
