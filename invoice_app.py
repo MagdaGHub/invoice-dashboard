@@ -1322,14 +1322,15 @@ def render_new_transaction_tab(
 
 
 def render_transactions_tab(
-    if READ_ONLY:
-        st.info("Read-only mode: editing and deleting transactions is disabled for shared viewers.")
     projects: pd.DataFrame,
     vendors: pd.DataFrame,
     categories: pd.DataFrame,
     phases: pd.DataFrame,
     line_items: pd.DataFrame,
 ) -> None:
+    if READ_ONLY:
+        st.info("Read-only mode: editing and deleting transactions is disabled for shared viewers."
+    
     st.subheader("Transactions")
 
     df = load_transactions_joined()
