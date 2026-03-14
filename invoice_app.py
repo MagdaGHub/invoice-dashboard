@@ -94,7 +94,7 @@ if not st.session_state.authenticated:
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
         st.markdown(
             '<div class="login-title">🔒 Invoice Dashboard</div>', 
-            unsafe_allow_html=True),
+            unsafe_allow_html=True)
         st.markdown(
             '<div class="login-sub">Authorized viewers only. Enter password to access project financial dashboard.</div>',
             unsafe_allow_html=True)
