@@ -20,42 +20,6 @@ if "authenticated" not in st.session_state:
 if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
 
-# STYLE 
-st.markdown("""
-<style>
-header, [data-testid="stHeader"], [data-testid="stToolbar"], #MainMenu, footer {
-    display: none !important;
-}
-[data-testid="stAppViewContainer"] > .main {
-    padding-top: 0 !important;
-}
-.block-container {
-    padding-top: 0.5rem !important;
-}
-body {
-    background-color: #f5f7fb;
-}
-.login-card {
-    background: white;
-    padding: 40px;
-    border-radius: 12px;
-    border: 1px solid #e6e6e6;
-    box-shadow: 0px 8px 20px rgba(0,0,0,0.05);
-}
-.login-title {
-    text-align: center;
-    font-size: 28px;
-    font-weight: 600;
-    margin-bottom: 10px;
-}
-.login-sub {
-    text-align: center;
-    color: #666;
-    margin-bottom: 25px;
-}
-</style>
-""", unsafe_allow_html=True)
-
 # LOGIN PAGE
 if not st.session_state.authenticated:
     st.markdown("""
@@ -66,6 +30,7 @@ if not st.session_state.authenticated:
     [data-testid="stSidebar"],
     [data-testid="stSidebarNav"],
     [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapsedControl"],
     #MainMenu,
     footer {
         display: none !important;
