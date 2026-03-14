@@ -91,6 +91,8 @@ if not st.session_state.authenticated:
                 else:
                     st.error("Incorrect admin password")
 
+        #st.markdown("</div>", unsafe_allow_html=True)
+        st.caption("If you need access, please contact the dashboard owner.")
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.stop()
