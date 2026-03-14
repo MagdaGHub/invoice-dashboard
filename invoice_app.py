@@ -58,11 +58,60 @@ body {
 
 # LOGIN PAGE
 if not st.session_state.authenticated:
+    st.markdown("""
+    <style>
+    header,
+    [data-testid="stHeader"],
+    [data-testid="stToolbar"],
+    [data-testid="stSidebar"],
+    [data-testid="stSidebarNav"],
+    [data-testid="collapsedControl"],
+    #MainMenu,
+    footer {
+        display: none !important;
+    }
+    [data-testid="stAppViewContainer"] > .main {
+        padding-top: 0rem !important;
+    }
+    [data-testid="collapsedControl"] {
+    display: none !important;
+    }
+    .block-container {
+        padding-top: 1.5rem !important;
+        max-width: 1200px;
+    }
+    body {
+        background-color: #f5f7fb;
+    }
+    .login-card {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        border: 1px solid #e6e6e6;
+        box-shadow: 0px 8px 20px rgba(0,0,0,0.05);
+    }
+    .login-title {
+        text-align: center;
+        font-size: 28px;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    .login-sub {
+        text-align: center;
+        color: #666;
+        margin-bottom: 25px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     c1, c2, c3 = st.columns([1, 1.6, 1])
 
     with c2:
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
         st.markdown('<div class="login-title">🔒 Invoice Dashboard</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="login-sub">Authorized viewers only. Enter password to access project financial dashboard.</div>',
+            unsafe_allow_html=True
 
         pwd = st.text_input(
             "Password",
@@ -91,11 +140,29 @@ if not st.session_state.authenticated:
                 else:
                     st.error("Incorrect admin password")
 
-        #st.markdown("</div>", unsafe_allow_html=True)
         st.caption("If you need access, please contact the dashboard owner.")
         st.markdown("</div>", unsafe_allow_html=True)
-
     st.stop()
+else:
+    st.markdown("""
+    <style>
+    [data-testid="stAppViewContainer"] > .main {
+        padding-top: 1rem !important;
+    }
+    .block-container {
+        padding-top: 1rem !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 32px;
+    }
+    [data-testid="stMetricLabel"] {
+        padding-bottom: 0px;
+    }
+    [data-testid="stMetric"] {
+        padding: 5px 10px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
 # SIDEBAR ONLY AFTER LOGIN
 with st.sidebar:
