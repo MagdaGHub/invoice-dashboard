@@ -152,23 +152,19 @@ if not st.session_state.authenticated:
     """, unsafe_allow_html=True)
     
 # ADMIN ACCESS AFTER LOGIN
-top1, top2, top3 = st.columns([6, 2, 2])
+st.markdown("#### Admin Access")
+top1, top2 = st.columns([3, 1])
 
 with top1:
-    if st.session_state.is_admin:
-        st.success("Admin mode enabled")
-    else:
-        st.caption("Viewer mode")
-                   
-with top2:
-    if not st.session_state.is_admin:
-        admin_pwd = st.text_input(
-            "Admin password",
-            type="password",
-            key="admin_pwd_main",
-        )
+    admin_pwd = st.text_input(
+        "",
+        type="password",
+        placeholder="Admin password",
+        label_visibility="collapsed",
+        key="admin_pwd_main"
+    )
 
-with top3:
+with top2:
     if not st.session_state.is_admin:
         if st.button("Unlock admin", use_container_width=True):
             if admin_pwd == ADMIN_PASSWORD:
