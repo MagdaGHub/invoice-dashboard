@@ -42,6 +42,17 @@ if "authenticated" not in st.session_state:
 st.markdown("""
 <style>
 
+/* Hide Streamlit header */
+header {visibility: hidden;}
+
+/* Hide top toolbar */
+#MainMenu {visibility: hidden;}
+
+/* Remove top spacing */
+.block-container {
+    padding-top: 1rem;
+}
+
 body {
     background-color: #f5f7fb;
 }
@@ -67,17 +78,6 @@ body {
     margin-bottom:25px;
 }
 
-
-/* Hide Streamlit header */
-header {visibility: hidden;}
-
-/* Hide top toolbar */
-#MainMenu {visibility: hidden;}
-
-/* Remove top spacing */
-.block-container {
-    padding-top: 1rem;
-}
 </style>
 """, unsafe_allow_html=True)
 
