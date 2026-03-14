@@ -1329,7 +1329,7 @@ def render_transactions_tab(
     line_items: pd.DataFrame,
 ) -> None:
     if READ_ONLY:
-        st.info("Read-only mode: editing and deleting transactions is disabled for shared viewers."
+        st.info("Read-only mode: editing and deleting transactions is disabled for shared viewers.")
     
     st.subheader("Transactions")
 
