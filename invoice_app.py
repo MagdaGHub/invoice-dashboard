@@ -53,8 +53,6 @@ if not st.session_state.authenticated:
 DB_PATH = "VendorInvoices.sqlite"
 
 pd.options.display.float_format = "{:,.2f}".format
-
-st.set_page_config(page_title="Invoice DB", layout="wide")
 st.markdown(
     """
     <style>
@@ -62,12 +60,10 @@ st.markdown(
     [data-testid="stMetricValue"] {
         font-size: 32px;
     }
-
     /* Reduce space between label and number */
     [data-testid="stMetricLabel"] {
         padding-bottom: 0px;
     }
-
     /* Reduce vertical spacing of metric blocks */
     [data-testid="stMetric"] {
         padding: 5px 10px;
