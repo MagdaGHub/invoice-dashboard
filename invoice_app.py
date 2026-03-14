@@ -12,9 +12,95 @@ st.set_page_config(
     layout="wide"
 )
 ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
+PASSWORD = st.secrets["APP_PASSWORD"] 
 
 if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+# ---------- STYLE ----------
+st.markdown("""
+<style>
+/* Fully remove Streamlit header/toolbar area */
+header {
+    display: none !important;
+}
+[data-testid="stHeader"] {
+    display: none !important;
+}
+[data-testid="stToolbar"] {
+    display: none !important;
+}
+#MainMenu {
+    display: none !important;
+}
+footer {
+    display: none !important;
+}
+/* Pull page content upward */
+[data-testid="stAppViewContainer"] > .main {
+    padding-top: 0rem !important;
+}
+.block-container {
+    padding-top: 0rem !important;
+    margin-top: 0rem !important;
+}
+body {
+    background-color: #f5f7fb;
+}
+.login-card {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    border: 1px solid #e6e6e6;
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.05);
+}
+.login-title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+.login-sub {
+    text-align: center;
+    color: #666;
+    margin-bottom: 25px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------- LOGIN ----------
+if not st.session_state.authenticated:
+    c1, c2, c3 = st.columns([1,1.6,1])
+
+    with c2:
+        st.markdown('<div class="login-card">', unsafe_allow_html=True)
+        st.markdown('<div class="login-title">🔒 Invoice Dashboard</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="login-sub">Authorized viewers only. Enter password to access project financial dashboard.</div>',
+            unsafe_allow_html=True
+        )
+
+        pwd = st.text_input(
+            "Password",
+            type="password",
+            placeholder="Enter access password",
+            label_visibility="collapsed"
+        )
+
+        if st.button("Access Dashboard", use_container_width=True):
+            if pwd == PASSWORD:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Incorrect password")
+
+        st.caption("If you need access, please contact the dashboard owner.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.stop()
 
 with st.sidebar:
     st.markdown("### Access")
@@ -33,90 +119,6 @@ with st.sidebar:
             st.rerun()
 
 READ_ONLY = not st.session_state.is_admin
-
-PASSWORD = st.secrets["APP_PASSWORD"]        
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-# ---------- STYLE ----------
-st.markdown("""
-<style>
-
-/* Hide Streamlit header */
-header {visibility: hidden;}
-
-/* Hide top toolbar */
-#MainMenu {visibility: hidden;}
-
-/* Remove top spacing */
-.block-container {
-    padding-top: 1rem;
-}
-
-body {
-    background-color: #f5f7fb;
-}
-
-.login-card {
-    background: white;
-    padding: 40px;
-    border-radius: 12px;
-    border: 1px solid #e6e6e6;
-    box-shadow: 0px 8px 20px rgba(0,0,0,0.05);
-}
-
-.login-title {
-    text-align:center;
-    font-size:28px;
-    font-weight:600;
-    margin-bottom:10px;
-}
-
-.login-sub {
-    text-align:center;
-    color:#666;
-    margin-bottom:25px;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# ---------- LOGIN ----------
-if not st.session_state.authenticated:
-
-    c1, c2, c3 = st.columns([1,1.6,1])
-
-    with c2:
-
-        st.markdown('<div class="login-card">', unsafe_allow_html=True)
-
-        st.markdown('<div class="login-title">🔒 Invoice Dashboard</div>', unsafe_allow_html=True)
-
-        st.markdown(
-            '<div class="login-sub">Authorized viewers only. Enter password to access project financial dashboard.</div>',
-            unsafe_allow_html=True
-        )
-
-        pwd = st.text_input(
-            "Password",
-            type="password",
-            placeholder="Enter access password",
-            label_visibility="collapsed"
-        )
-
-        if st.button("Access Dashboard", use_container_width=True):
-
-            if pwd == PASSWORD:
-                st.session_state.authenticated = True
-                st.rerun()
-            else:
-                st.error("Incorrect password")
-
-        st.caption("If you need access, please contact the dashboard owner.")
-
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    st.stop()
 
 # ============================================================
 # CONFIG
