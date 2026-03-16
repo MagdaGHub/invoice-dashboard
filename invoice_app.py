@@ -77,51 +77,51 @@ body {
 </style>
 """, unsafe_allow_html=True)
     
-    c1, c2, c3 = st.columns([1, 1.6, 1])
+c1, c2, c3 = st.columns([1, 1.6, 1])
 
-    with c2:
-        st.markdown('<div class="login-card">', unsafe_allow_html=True)
+with c2:
+    st.markdown('<div class="login-card">', unsafe_allow_html=True)
 
-        st.image("LogoWhiteBgrd.png", width=120)
+    st.image("LogoWhiteBgrd.png", width=120)
         
-        st.markdown(
-            '<div class="login-title">🔒 Invoice Dashboard</div>', 
-            unsafe_allow_html=True)
+    st.markdown(
+        '<div class="login-title">🔒 Invoice Dashboard</div>', 
+        unsafe_allow_html=True)
         
-        st.markdown(
-            '<div class="login-sub">Authorized viewers only. Enter password to access project financial dashboard.</div>',
-            unsafe_allow_html=True)
+    st.markdown(
+        '<div class="login-sub">Authorized viewers only. Enter password to access project financial dashboard.</div>',
+        unsafe_allow_html=True)
 
-        pwd = st.text_input(
-            "Password",
-            type="password",
-            placeholder="Enter password",
-            label_visibility="collapsed"
-        )
+    pwd = st.text_input(
+        "Password",
+        type="password",
+        placeholder="Enter password",
+        label_visibility="collapsed"
+    )
 
-        col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
-        with col1:
-            if st.button("Viewer Access", use_container_width=True):
-                if pwd == APP_PASSWORD:
-                    st.session_state.authenticated = True
-                    st.session_state.is_admin = False
-                    st.rerun()
-                else:
-                    st.error("Incorrect viewer password")
+    with col1:
+        if st.button("Viewer Access", use_container_width=True):
+            if pwd == APP_PASSWORD:
+                st.session_state.authenticated = True
+                st.session_state.is_admin = False
+                st.rerun()
+            else:
+                st.error("Incorrect viewer password")
 
-        with col2:
-            if st.button("Admin Access", use_container_width=True):
-                if pwd == ADMIN_PASSWORD:
-                    st.session_state.authenticated = True
-                    st.session_state.is_admin = True
-                    st.rerun()
-                else:
-                    st.error("Incorrect admin password")
+    with col2:
+        if st.button("Admin Access", use_container_width=True):
+            if pwd == ADMIN_PASSWORD:
+                st.session_state.authenticated = True
+                st.session_state.is_admin = True
+                st.rerun()
+            else:
+                st.error("Incorrect admin password")
 
-        st.caption("If you need access, please contact the dashboard owner.")
-        st.markdown("</div>", unsafe_allow_html=True)
-    st.stop()
+    st.caption("If you need access, please contact the dashboard owner.")
+    st.markdown("</div>", unsafe_allow_html=True)
+st.stop()
 
 # ADMIN ACCESS AFTER LOGIN
 with st.expander("Admin Access", expanded=False):
