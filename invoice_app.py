@@ -151,33 +151,7 @@ if not st.session_state.authenticated:
     </style>
     """, unsafe_allow_html=True)
 
-    # ADMIN ACCESS AFTER LOGIN
-with st.expander("Admin Access"):
-    top1, top2 = st.columns([3, 1])
-        
-    with top1:
-            admin_pwd = st.text_input(
-                "",
-                type="password",
-                placeholder="Admin password",
-                label_visibility="collapsed",
-                key="admin_pwd_main"
-            )
-        
-    with top2:
-        if not st.session_state.is_admin:
-            if st.button("Unlock admin", use_container_width=True):
-                if admin_pwd == ADMIN_PASSWORD:
-                    st.session_state.is_admin = True
-                    st.rerun()
-                else:
-                    st.error("Wrong admin password")
-        else:
-            if st.button("Lock admin", use_container_width=True):
-                st.session_state.is_admin = False
-                st.rerun()
 
-READ_ONLY = not st.session_state.is_admin
 
 # ============================================================
 # CONFIG
