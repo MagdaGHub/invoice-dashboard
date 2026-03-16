@@ -2433,34 +2433,50 @@ def main() -> None:
     projects, vendors, categories, phases, line_items = load_lookups()
 
     if st.session_state.is_admin:
-        tab_dashboard, tab1, tab2, tab3, tab4 = st.tabs(
+        tab_dashboard, tab_new_txn, tab_txns, tab_reports, tab_vendor = st.tabs(
             [
                 "🏠 Project Dashboard",
                 "➕ New Transaction",
                 "📋 Transactions",
                 "📈 Reports",
-                "🛠 New Vendor",
+                "🛠 Vendor Admin",
             ]
         )
+
+        with tab_dashboard:
+            render_dashboard_tab(projects, vendors, categories, phases, line_items)
+
+        with tab_new_txn:
+            render_new_transaction_tab(
+                projects, vendors, categories, phases, line_items
+            )
+
+        with tab_txns:
+            render_transactions_tab(projects, vendors, categories, phases, line_items)
+
+        with tab_reports:
+            render_reports_tab()
+
+        with tab_vendor:
+            render_vendor_admin_tab()
+
     else:
-        tab_dashboard, tab1, tab2, tab3 = st.tabs(
+        tab_dashboard, tab_txns, tab_reports = st.tabs(
             [
                 "🏠 Project Dashboard",
                 "📋 Transactions",
                 "📈 Reports",
             ]
         )
-    with tab_dashboard:
-        render_dashboard_tab(projects, vendors, categories, phases, line_items)
-    with tab1:
-        render_new_transaction_tab(projects, vendors, categories, phases, line_items)
-    with tab2:
-        render_transactions_tab(projects, vendors, categories, phases, line_items)
-    with tab3:
-        render_reports_tab()
-    if st.session_state.is_admin:
-        with tab4:
-            render_vendor_admin_tab()
+
+        with tab_dashboard:
+            render_dashboard_tab(projects, vendors, categories, phases, line_items)
+
+        with tab_txns:
+            render_transactions_tab(projects, vendors, categories, phases, line_items)
+
+        with tab_reports:
+            render_reports_tab()
 
 if __name__ == "__main__":
     main()
