@@ -1749,24 +1749,28 @@ def render_transactions_tab(
                 refresh_data()
 
     if not READ_ONLY:
-        st.markdown("### Delete")
-        del_col1, del_col2 = st.columns([1, 3])
+        st.markdown("### Delete transaction")
+        del_col1, del_col2 = st.columns([1, 1])
     
         with del_col1:
             delete_id = st.number_input(
-                "transaction_id",
+                "Transaction ID",
                 min_value=1,
                 step=1,
                 key="delete_txn_id",
             )
         with del_col2:
-            if not READ_ONLY and st.button("Delete transaction"):
+            st.write("")
+            st.write("")
+            if not READ_ONLY and confirm and st.button("Delete", use_container_width=True):
+                txn_id = int(delete_id)
+                
                 deleted = exec_sql(
                     "DELETE FROM transactions WHERE transaction_id = ?;",
-                    (int(delete_id),),
+                    (txn_id,),
                 )
                 if deleted:
-                    st.success("Deleted ✅")
+                    st.success(f"Transaction #{txn_id} deleted ✅")
                     refresh_data()
 
 def render_reports_tab() -> None:
