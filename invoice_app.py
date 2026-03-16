@@ -2446,7 +2446,6 @@ def main() -> None:
         tab_dashboard, tab1, tab2, tab3 = st.tabs(
             [
                 "🏠 Project Dashboard",
-                "➕ New Transaction",
                 "📋 Transactions",
                 "📈 Reports",
             ]
