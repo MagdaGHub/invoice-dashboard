@@ -142,30 +142,26 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ADMIN ACCESS AFTER LOGIN
-with st.expander("Admin Access"):
-    top1, top2 = st.columns([3, 1])
-        
-    with top1:
-            admin_pwd = st.text_input(
-                "",
-                type="password",
-                placeholder="Admin password",
-                label_visibility="collapsed",
-                key="admin_pwd_main"
-            )
-        
-    with top2:
-        if not st.session_state.is_admin:
-            if st.button("Unlock admin", use_container_width=True):
-                if admin_pwd == ADMIN_PASSWORD:
-                    st.session_state.is_admin = True
-                    st.rerun()
-                else:
-                    st.error("Wrong admin password")
-        else:
-            if st.button("Lock admin", use_container_width=True):
-                st.session_state.is_admin = False
+with st.expander("Admin Access", expanded=False):
+    admin_pwd = st.text_input(
+        "Admin password",
+        type="password",
+        placeholder="Enter admin password",
+        key="admin_pwd_main"
+    )
+
+    if not st.session_state.is_admin:
+        if st.button("Unlock admin", use_container_width=False, key="unlock_admin_btn"):
+            if admin_pwd == ADMIN_PASSWORD:
+                st.session_state.is_admin = True
                 st.rerun()
+            else:
+                st.error("Wrong admin password")
+    else:
+        st.success("Admin mode is enabled.")
+        if st.button("Lock admin", use_container_width=False, key="lock_admin_btn"):
+            st.session_state.is_admin = False
+            st.rerun()
 
 READ_ONLY = not st.session_state.is_admin
 
