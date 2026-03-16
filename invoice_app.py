@@ -215,6 +215,20 @@ SESSION_DEFAULTS = {
     "edit_category": None,
     "edit_phase": None,
     "edit_line_item": None,
+
+    # new transaction form defaults
+    "new_project": None,
+    "new_vendor": None,
+    "new_category": None,
+    "new_phase": None,
+    "new_line_item": None,
+    "new_amount": 0.0,
+    "new_txn_date": date.today(),
+    "new_receipt_number": "",
+    "new_notes": "",
+
+    # success message after save
+    "last_saved_txn": None,
 }
 
 EDITABLE_TXN_COLUMNS = ["txn_date", "receipt_number", "amount", "notes"]
@@ -286,7 +300,6 @@ def chart_size(
     width = 950
     return width, height
 
-
 def add_totals_row(
     df: pd.DataFrame,
     label_col: str | None = None,
@@ -295,16 +308,12 @@ def add_totals_row(
     df_total = df.copy()
     numeric_cols = df_total.select_dtypes(include="number").columns
     totals = df_total[numeric_cols].sum()
-
     total_row = {col: "" for col in df_total.columns}
     if label_col and label_col in df_total.columns:
         total_row[label_col] = label
-
     for col in numeric_cols:
         total_row[col] = totals[col]
-
     return pd.concat([df_total, pd.DataFrame([total_row])], ignore_index=True)
-
 
 def pretty_report_table(
     df: pd.DataFrame,
@@ -316,23 +325,18 @@ def pretty_report_table(
     currency_cols = currency_cols or []
     percent_cols = percent_cols or []
     variance_cols = variance_cols or []
-
     fmt: dict[str, str] = {}
-
     for col in currency_cols:
         if col in df.columns:
             fmt[col] = f"${{:,.{decimals}f}}"
-
     for col in percent_cols:
         if col in df.columns:
             fmt[col] = "{:,.1f}%"
-
     styler = (
         df.style.format(fmt, na_rep="—").set_properties(
             **{"text-align": "left", "white-space": "nowrap"}
         )
     )
-
     for col in variance_cols:
         if col in df.columns:
             styler = styler.map(
@@ -345,7 +349,6 @@ def pretty_report_table(
                 ),
                 subset=[col],
             )
-
     styler = styler.apply(
         lambda row: [
             "font-weight:700; background-color:#F3F4F6;"
@@ -355,15 +358,43 @@ def pretty_report_table(
         ],
         axis=1,
     )
-
     return styler
-
 
 def get_name_from_id(df: pd.DataFrame, id_col: str, name_col: str, value):
     matches = df.loc[df[id_col] == value, name_col]
     return matches.iloc[0] if not matches.empty else str(value)
 
+def reset_new_transaction_form(
+    projects: pd.DataFrame,
+    vendors: pd.DataFrame,
+    categories: pd.DataFrame,
+    phases: pd.DataFrame,
+    line_items: pd.DataFrame,
+) -> None:
+    if not projects.empty:
+        st.session_state.new_project = projects["project_id"].tolist()[0]
+    if not vendors.empty:
+        st.session_state.new_vendor = int(vendors["vendor_id"].tolist()[0])
+    if not categories.empty:
+        first_category = int(categories["build_category_id"].tolist()[0])
+        st.session_state.new_category = first_category
+        phase_filtered = get_phase_options(phases, first_category)
+        if not phase_filtered.empty:
+            first_phase = int(phase_filtered["phase_id"].tolist()[0])
+            st.session_state.new_phase = first_phase
 
+            li_filtered = get_line_item_options(line_items, first_phase)
+            st.session_state.new_line_item = (
+                int(li_filtered["line_item_id"].tolist()[0]) if not li_filtered.empty else None
+            )
+        else:
+            st.session_state.new_phase = None
+            st.session_state.new_line_item = None
+    st.session_state.new_amount = 0.0
+    st.session_state.new_txn_date = date.today()
+    st.session_state.new_receipt_number = ""
+    st.session_state.new_notes = ""
+    
 # ============================================================
 # LOOKUPS / CACHED DATA
 # ============================================================
@@ -1320,7 +1351,6 @@ def render_dashboard_tab(
 
     st.divider()
 
-
 def render_new_transaction_tab(
     projects: pd.DataFrame,
     vendors: pd.DataFrame,
@@ -1332,7 +1362,6 @@ def render_new_transaction_tab(
         st.info("Read-only mode: adding transactions is disabled for shared viewers.")
         return
     st.subheader("Add New Transaction")
-
     if (
         projects.empty
         or vendors.empty
@@ -1342,9 +1371,28 @@ def render_new_transaction_tab(
     ):
         st.warning("Missing lookup data. Check your reference tables.")
         return
-
+    # initialize defaults once
+    if st.session_state.get("new_project") is None:
+        reset_new_transaction_form(projects, vendors, categories, phases, line_items)
+    # show confirmation from last saved transaction
+    if st.session_state.get("last_saved_txn"):
+        s = st.session_state.last_saved_txn
+        st.success("Transaction saved successfully ✅")
+        st.markdown(
+            f"""
+**Saved details**
+- **Project:** {s['project_name']}
+- **Vendor:** {s['vendor_name']}
+- **Build Category:** {s['category_name']}
+- **Phase:** {s['phase_name']}
+- **Line Item:** {s['line_item_name']}
+- **Amount:** ${s['amount']:,.2f}
+- **Transaction Date:** {s['txn_date']}
+- **Receipt Number:** {s['receipt_number'] or '—'}
+- **Notes:** {s['notes'] or '—'}
+            """
+        )
     c1, c2, c3 = st.columns(3)
-
     with c1:
         project_id = st.selectbox(
             "Project",
@@ -1360,7 +1408,6 @@ def render_new_transaction_tab(
             format_func=lambda x: get_name_from_id(vendors, "vendor_id", "vendor_name", x),
             key="new_vendor",
         )
-
     with c2:
         category_id = st.selectbox(
             "Build Category",
@@ -1376,19 +1423,25 @@ def render_new_transaction_tab(
             st.warning("No phases for this build category.")
             return
 
+        if st.session_state.get("new_phase") not in phase_filtered["phase_id"].tolist():
+            st.session_state.new_phase = int(phase_filtered["phase_id"].tolist()[0])
+
         phase_id = st.selectbox(
             "Phase",
             phase_filtered["phase_id"].tolist(),
             format_func=lambda x: get_name_from_id(phase_filtered, "phase_id", "name", x),
             key="new_phase",
         )
-
     with c3:
         li_filtered = get_line_item_options(line_items, phase_id)
         if li_filtered.empty:
             st.warning("No line items for this phase.")
             line_item_id = None
+            st.session_state.new_line_item = None
         else:
+            if st.session_state.get("new_line_item") not in li_filtered["line_item_id"].tolist():
+                st.session_state.new_line_item = int(li_filtered["line_item_id"].tolist()[0])
+
             line_item_id = st.selectbox(
                 "Line Item",
                 li_filtered["line_item_id"].tolist(),
@@ -1397,15 +1450,19 @@ def render_new_transaction_tab(
                 ),
                 key="new_line_item",
             )
-
-    amount = st.number_input("Amount", min_value=0.0, step=10.0, format="%.2f")
-    txn_date = st.date_input("Transaction Date", value=date.today())
-    receipt_number = st.text_input("Receipt Number")
-    notes = st.text_area("Notes")
+    amount = st.number_input(
+        "Amount",
+        min_value=0.0,
+        step=10.0,
+        format="%.2f",
+        key="new_amount",
+    )
+    txn_date = st.date_input("Transaction Date", key="new_txn_date")
+    receipt_number = st.text_input("Receipt Number", key="new_receipt_number")
+    notes = st.text_area("Notes", key="new_notes")
 
     save_disabled = line_item_id is None or st.session_state.saving_txn
-
-    if not READ_ONLY and st.button("Save Transaction", type="primary", disabled=save_disabled):
+    if st.button("Save Transaction", type="primary", disabled=save_disabled):
         st.session_state.saving_txn = True
 
         if amount <= 0:
@@ -1432,11 +1489,21 @@ def render_new_transaction_tab(
                 datetime.now().isoformat(timespec="seconds"),
             ),
         )
-
         st.session_state.saving_txn = False
-
         if saved:
-            st.success("Saved ✅")
+            st.session_state.last_saved_txn = {
+                "project_name": get_name_from_id(projects, "project_id", "project_name", project_id),
+                "vendor_name": get_name_from_id(vendors, "vendor_id", "vendor_name", vendor_id),
+                "category_name": get_name_from_id(categories, "build_category_id", "name", category_id),
+                "phase_name": get_name_from_id(phase_filtered, "phase_id", "name", phase_id),
+                "line_item_name": get_name_from_id(li_filtered, "line_item_id", "name", line_item_id),
+                "amount": float(amount),
+                "txn_date": str(txn_date),
+                "receipt_number": receipt_number.strip(),
+                "notes": notes.strip(),
+            }
+
+            reset_new_transaction_form(projects, vendors, categories, phases, line_items)
             refresh_data()
 
 def render_transactions_tab(
