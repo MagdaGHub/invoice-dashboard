@@ -35,14 +35,13 @@ header {visibility: hidden;}
 footer {visibility:hidden;}
 
 /* Page background */
-body {
-    background: linear-gradient(135deg,#f6f8fc 0%,#eef1f7 100%);
+body {background: linear-gradient(135deg,#f6f8fc 0%,#eef1f7 100%);}
+[data-testid="stAppViewContainer"] > .main {
+    padding-top: 0rem !important;
 }
-
-/* Center login */
 .block-container {
-    padding-top: 80px;
-    max-width: 420px;
+    padding-top: 3rem !important;
+    max-width: 1100px !important;
 }
 
 /* Login card */
@@ -60,13 +59,15 @@ body {
     font-size:28px;
     font-weight:600;
     margin-top:10px;
-    margin-bottom:6px;
+    margin-bottom:8px;
+    white-space: normal;
 }
 
 /* Subtitle */
 .login-sub {
     color:#666;
     margin-bottom:25px;
+    line-height: 1.5;
 }
 
 /* Password field */
@@ -77,7 +78,7 @@ body {
 </style>
 """, unsafe_allow_html=True)
     
-c1, c2, c3 = st.columns([1, 1.6, 1])
+c1, c2, c3 = st.columns([1.2, 2.6, 1.2])
 
 with c2:
     st.markdown('<div class="login-card">', unsafe_allow_html=True)
