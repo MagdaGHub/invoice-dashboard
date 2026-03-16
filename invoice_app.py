@@ -1361,7 +1361,9 @@ def render_new_transaction_tab(
     if READ_ONLY:
         st.info("Read-only mode: adding transactions is disabled for shared viewers.")
         return
+
     st.subheader("Add New Transaction")
+
     if (
         projects.empty
         or vendors.empty
@@ -1371,12 +1373,10 @@ def render_new_transaction_tab(
     ):
         st.warning("Missing lookup data. Check your reference tables.")
         return
-    # initialize defaults once
-    if st.session_state.get("new_project") is None:
-        reset_new_transaction_form(projects, vendors, categories, phases, line_items)
-    # show confirmation from last saved transaction
+
+    # confirmation from last successful save
     if st.session_state.get("last_saved_txn"):
-        s = st.session_state.last_saved_txn
+        s = st.session_state["last_saved_txn"]
         st.success("Transaction saved successfully ✅")
         st.markdown(
             f"""
@@ -1390,86 +1390,80 @@ def render_new_transaction_tab(
 - **Transaction Date:** {s['txn_date']}
 - **Receipt Number:** {s['receipt_number'] or '—'}
 - **Notes:** {s['notes'] or '—'}
-            """
+"""
         )
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        project_id = st.selectbox(
-            "Project",
-            projects["project_id"].tolist(),
-            format_func=lambda x: get_name_from_id(
-                projects, "project_id", "project_name", x
-            ),
-            key="new_project",
-        )
-        vendor_id = st.selectbox(
-            "Vendor",
-            vendors["vendor_id"].tolist(),
-            format_func=lambda x: get_name_from_id(vendors, "vendor_id", "vendor_name", x),
-            key="new_vendor",
-        )
-    with c2:
-        category_id = st.selectbox(
-            "Build Category",
-            categories["build_category_id"].tolist(),
-            format_func=lambda x: get_name_from_id(
-                categories, "build_category_id", "name", x
-            ),
-            key="new_category",
-        )
+    with st.form("new_transaction_form", clear_on_submit=True):
+        c1, c2, c3 = st.columns(3)
 
-        phase_filtered = get_phase_options(phases, category_id)
-        if phase_filtered.empty:
-            st.warning("No phases for this build category.")
-            return
-
-        if st.session_state.get("new_phase") not in phase_filtered["phase_id"].tolist():
-            st.session_state.new_phase = int(phase_filtered["phase_id"].tolist()[0])
-
-        phase_id = st.selectbox(
-            "Phase",
-            phase_filtered["phase_id"].tolist(),
-            format_func=lambda x: get_name_from_id(phase_filtered, "phase_id", "name", x),
-            key="new_phase",
-        )
-    with c3:
-        li_filtered = get_line_item_options(line_items, phase_id)
-        if li_filtered.empty:
-            st.warning("No line items for this phase.")
-            line_item_id = None
-            st.session_state.new_line_item = None
-        else:
-            if st.session_state.get("new_line_item") not in li_filtered["line_item_id"].tolist():
-                st.session_state.new_line_item = int(li_filtered["line_item_id"].tolist()[0])
-
-            line_item_id = st.selectbox(
-                "Line Item",
-                li_filtered["line_item_id"].tolist(),
+        with c1:
+            project_id = st.selectbox(
+                "Project",
+                projects["project_id"].tolist(),
                 format_func=lambda x: get_name_from_id(
-                    li_filtered, "line_item_id", "name", x
+                    projects, "project_id", "project_name", x
                 ),
-                key="new_line_item",
             )
-    amount = st.number_input(
-        "Amount",
-        min_value=0.0,
-        step=10.0,
-        format="%.2f",
-        key="new_amount",
-    )
-    txn_date = st.date_input("Transaction Date", key="new_txn_date")
-    receipt_number = st.text_input("Receipt Number", key="new_receipt_number")
-    notes = st.text_area("Notes", key="new_notes")
+            vendor_id = st.selectbox(
+                "Vendor",
+                vendors["vendor_id"].tolist(),
+                format_func=lambda x: get_name_from_id(
+                    vendors, "vendor_id", "vendor_name", x
+                ),
+            )
+        with c2:
+            category_id = st.selectbox(
+                "Build Category",
+                categories["build_category_id"].tolist(),
+                format_func=lambda x: get_name_from_id(
+                    categories, "build_category_id", "name", x
+                ),
+            )
+            phase_filtered = get_phase_options(phases, category_id)
+            if phase_filtered.empty:
+                st.warning("No phases for this build category.")
+                submitted = st.form_submit_button("Save Transaction", disabled=True)
+                return
+            phase_id = st.selectbox(
+                "Phase",
+                phase_filtered["phase_id"].tolist(),
+                format_func=lambda x: get_name_from_id(
+                    phase_filtered, "phase_id", "name", x
+                ),
+            )
+        with c3:
+            li_filtered = get_line_item_options(line_items, phase_id)
+            if li_filtered.empty:
+                st.warning("No line items for this phase.")
+                line_item_id = None
+            else:
+                line_item_id = st.selectbox(
+                    "Line Item",
+                    li_filtered["line_item_id"].tolist(),
+                    format_func=lambda x: get_name_from_id(
+                        li_filtered, "line_item_id", "name", x
+                    ),
+                )
+        amount = st.number_input(
+            "Amount",
+            min_value=0.0,
+            step=10.0,
+            format="%.2f",
+        )
+        txn_date = st.date_input("Transaction Date", value=date.today())
+        receipt_number = st.text_input("Receipt Number")
+        notes = st.text_area("Notes")
 
-    save_disabled = line_item_id is None or st.session_state.saving_txn
-    if st.button("Save Transaction", type="primary", disabled=save_disabled):
+        submitted = st.form_submit_button(
+            "Save Transaction",
+            type="primary",
+            disabled=(line_item_id is None or st.session_state.saving_txn),
+        )
+    if submitted:
         st.session_state.saving_txn = True
-
         if amount <= 0:
             st.error("Amount must be greater than 0.")
             st.session_state.saving_txn = False
             return
-
         saved = exec_sql(
             """
             INSERT INTO transactions (
@@ -1490,22 +1484,31 @@ def render_new_transaction_tab(
             ),
         )
         st.session_state.saving_txn = False
+
         if saved:
-            st.session_state.last_saved_txn = {
-                "project_name": get_name_from_id(projects, "project_id", "project_name", project_id),
-                "vendor_name": get_name_from_id(vendors, "vendor_id", "vendor_name", vendor_id),
-                "category_name": get_name_from_id(categories, "build_category_id", "name", category_id),
-                "phase_name": get_name_from_id(phase_filtered, "phase_id", "name", phase_id),
-                "line_item_name": get_name_from_id(li_filtered, "line_item_id", "name", line_item_id),
+            st.session_state["last_saved_txn"] = {
+                "project_name": get_name_from_id(
+                    projects, "project_id", "project_name", project_id
+                ),
+                "vendor_name": get_name_from_id(
+                    vendors, "vendor_id", "vendor_name", vendor_id
+                ),
+                "category_name": get_name_from_id(
+                    categories, "build_category_id", "name", category_id
+                ),
+                "phase_name": get_name_from_id(
+                    phase_filtered, "phase_id", "name", phase_id
+                ),
+                "line_item_name": get_name_from_id(
+                    li_filtered, "line_item_id", "name", line_item_id
+                ),
                 "amount": float(amount),
                 "txn_date": str(txn_date),
                 "receipt_number": receipt_number.strip(),
                 "notes": notes.strip(),
             }
-
-            reset_new_transaction_form(projects, vendors, categories, phases, line_items)
             refresh_data()
-
+            
 def render_transactions_tab(
     projects: pd.DataFrame,
     vendors: pd.DataFrame,
