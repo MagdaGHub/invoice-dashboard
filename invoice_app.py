@@ -1614,144 +1614,145 @@ def render_transactions_tab(
                 st.success(f"Saved {success_count} updated transaction(s). ✅")
                 refresh_data()
 
-    st.markdown("### Edit Project / Vendor / Phase / Line Item (safe dropdowns)")
-
-    edit_id = st.number_input(
-        "transaction_id to edit",
-        min_value=1,
-        step=1,
-        key="edit_txn_id",
-    )
-
-    if not READ_ONLY and st.button("Load transaction", key="load_txn"):
-        tx = load_df(
-            """
-            SELECT transaction_id, project_id, vendor_id, phase_id, line_item_id
-            FROM transactions
-            WHERE transaction_id = ?
-            """,
-            (int(edit_id),),
+    if not READ_ONLY:
+        st.markdown("### Edit Project / Vendor / Phase / Line Item (safe dropdowns)")
+    
+        edit_id = st.number_input(
+            "Transaction ID to edit",
+            min_value=1,
+            step=1,
+            key="edit_txn_id",
         )
-
-        if tx.empty:
-            st.error("Transaction ID not found.")
-        else:
-            tx_row = tx.iloc[0]
-
-            phase_row = phases[phases["phase_id"] == tx_row["phase_id"]]
-            if phase_row.empty:
-                st.error("Phase for selected transaction not found.")
-            else:
-                category_id = int(phase_row["build_category_id"].iloc[0])
-
-                st.session_state.edit_loaded = True
-                st.session_state.edit_id = int(tx_row["transaction_id"])
-                st.session_state.edit_project = tx_row["project_id"]
-                st.session_state.edit_vendor = int(tx_row["vendor_id"])
-                st.session_state.edit_category = int(category_id)
-                st.session_state.edit_phase = int(tx_row["phase_id"])
-                st.session_state.edit_line_item = int(tx_row["line_item_id"])
-
-    if st.session_state.get("edit_loaded") and st.session_state.get("edit_category") is not None:
-        current_category_id = st.session_state["edit_category"]
-
-        phase_df = get_phase_options(phases, current_category_id)
-        phase_ids = phase_df["phase_id"].tolist()
-
-        if phase_ids and st.session_state.edit_phase not in phase_ids:
-            st.session_state.edit_phase = phase_ids[0]
-
-        current_phase_id = st.session_state.edit_phase
-
-        li_df = get_line_item_options(line_items, current_phase_id)
-        li_ids = li_df["line_item_id"].tolist()
-
-        if li_ids and st.session_state.edit_line_item not in li_ids:
-            st.session_state.edit_line_item = li_ids[0]
-
-        c1, c2, c3 = st.columns(3)
-
-        with c1:
-            st.selectbox(
-                "Project",
-                projects["project_id"].tolist(),
-                key="edit_project",
-                format_func=lambda x: get_name_from_id(
-                    projects, "project_id", "project_name", x
-                ),
-            )
-
-            st.selectbox(
-                "Vendor",
-                vendors["vendor_id"].tolist(),
-                key="edit_vendor",
-                format_func=lambda x: get_name_from_id(
-                    vendors, "vendor_id", "vendor_name", x
-                ),
-            )
-
-        with c2:
-            st.selectbox(
-                "Build Category",
-                categories["build_category_id"].tolist(),
-                key="edit_category",
-                format_func=lambda x: get_name_from_id(
-                    categories, "build_category_id", "name", x
-                ),
-            )
-
-            phase_df = get_phase_options(phases, st.session_state.edit_category)
-
-            if phase_df.empty:
-                st.warning("No phases for selected category.")
-                return
-
-            st.selectbox(
-                "Phase",
-                phase_df["phase_id"].tolist(),
-                key="edit_phase",
-                format_func=lambda x: get_name_from_id(phase_df, "phase_id", "name", x),
-            )
-
-        with c3:
-            li_df = get_line_item_options(line_items, st.session_state.edit_phase)
-
-            if li_df.empty:
-                st.warning("No line items for this phase")
-            else:
-                st.selectbox(
-                    "Line Item",
-                    li_df["line_item_id"].tolist(),
-                    key="edit_line_item",
-                    format_func=lambda x: get_name_from_id(
-                        li_df, "line_item_id", "name", x
-                    ),
-                )
-
-        if not READ_ONLY and st.button("Save relational changes", type="primary"):
-            saved = exec_sql(
+    
+        if st.button("Load transaction", key="load_txn"):
+            tx = load_df(
                 """
-                UPDATE transactions
-                SET project_id = ?, vendor_id = ?, phase_id = ?, line_item_id = ?
+                SELECT transaction_id, project_id, vendor_id, phase_id, line_item_id
+                FROM transactions
                 WHERE transaction_id = ?
                 """,
-                (
-                    st.session_state.edit_project,
-                    int(st.session_state.edit_vendor),
-                    int(st.session_state.edit_phase),
-                    int(st.session_state.edit_line_item),
-                    int(st.session_state.edit_id),
-                ),
+                (int(edit_id),),
             )
-
-            if saved:
-                st.success("Updated relational fields ✅")
-                refresh_data()
-
-    if not READ_ONLY:
+    
+            if tx.empty:
+                st.error("Transaction ID not found.")
+            else:
+                tx_row = tx.iloc[0]
+    
+                phase_row = phases[phases["phase_id"] == tx_row["phase_id"]]
+                if phase_row.empty:
+                    st.error("Phase for selected transaction not found.")
+                else:
+                    category_id = int(phase_row["build_category_id"].iloc[0])
+    
+                    st.session_state.edit_loaded = True
+                    st.session_state.edit_id = int(tx_row["transaction_id"])
+                    st.session_state.edit_project = tx_row["project_id"]
+                    st.session_state.edit_vendor = int(tx_row["vendor_id"])
+                    st.session_state.edit_category = int(category_id)
+                    st.session_state.edit_phase = int(tx_row["phase_id"])
+                    st.session_state.edit_line_item = int(tx_row["line_item_id"])
+    
+        if st.session_state.get("edit_loaded") and st.session_state.get("edit_category") is not None:
+            current_category_id = st.session_state["edit_category"]
+    
+            phase_df = get_phase_options(phases, current_category_id)
+            phase_ids = phase_df["phase_id"].tolist()
+    
+            if phase_ids and st.session_state.edit_phase not in phase_ids:
+                st.session_state.edit_phase = phase_ids[0]
+    
+            current_phase_id = st.session_state.edit_phase
+    
+            li_df = get_line_item_options(line_items, current_phase_id)
+            li_ids = li_df["line_item_id"].tolist()
+    
+            if li_ids and st.session_state.edit_line_item not in li_ids:
+                st.session_state.edit_line_item = li_ids[0]
+    
+            c1, c2, c3 = st.columns(3)
+    
+            with c1:
+                st.selectbox(
+                    "Project",
+                    projects["project_id"].tolist(),
+                    key="edit_project",
+                    format_func=lambda x: get_name_from_id(
+                        projects, "project_id", "project_name", x
+                    ),
+                )
+    
+                st.selectbox(
+                    "Vendor",
+                    vendors["vendor_id"].tolist(),
+                    key="edit_vendor",
+                    format_func=lambda x: get_name_from_id(
+                        vendors, "vendor_id", "vendor_name", x
+                    ),
+                )
+    
+            with c2:
+                st.selectbox(
+                    "Build Category",
+                    categories["build_category_id"].tolist(),
+                    key="edit_category",
+                    format_func=lambda x: get_name_from_id(
+                        categories, "build_category_id", "name", x
+                    ),
+                )
+    
+                phase_df = get_phase_options(phases, st.session_state.edit_category)
+    
+                if phase_df.empty:
+                    st.warning("No phases for selected category.")
+                    return
+    
+                st.selectbox(
+                    "Phase",
+                    phase_df["phase_id"].tolist(),
+                    key="edit_phase",
+                    format_func=lambda x: get_name_from_id(phase_df, "phase_id", "name", x),
+                )
+    
+            with c3:
+                li_df = get_line_item_options(line_items, st.session_state.edit_phase)
+    
+                if li_df.empty:
+                    st.warning("No line items for this phase")
+                else:
+                    st.selectbox(
+                        "Line Item",
+                        li_df["line_item_id"].tolist(),
+                        key="edit_line_item",
+                        format_func=lambda x: get_name_from_id(
+                            li_df, "line_item_id", "name", x
+                        ),
+                    )
+    
+            if st.button("Save relational changes", type="primary"):
+                saved = exec_sql(
+                    """
+                    UPDATE transactions
+                    SET project_id = ?, vendor_id = ?, phase_id = ?, line_item_id = ?
+                    WHERE transaction_id = ?
+                    """,
+                    (
+                        st.session_state.edit_project,
+                        int(st.session_state.edit_vendor),
+                        int(st.session_state.edit_phase),
+                        int(st.session_state.edit_line_item),
+                        int(st.session_state.edit_id),
+                    ),
+                )
+    
+                if saved:
+                    st.success("Updated relational fields ✅")
+                    refresh_data()
+    
         st.markdown("### Delete Transaction")
-        col1, col2 = st.columns([1,1])
-        
+    
+        col1, col2 = st.columns([1, 1])
+    
         with col1:
             delete_id = st.number_input(
                 "Transaction ID",
@@ -1759,12 +1760,12 @@ def render_transactions_tab(
                 step=1,
                 key="delete_txn_id",
             )
+    
         with col2:
             st.write("")
             st.write("")
             confirm = st.checkbox("Confirm delete")
-        
-        # Show transaction preview
+    
         if delete_id:
             preview = load_df(
                 """
@@ -1783,10 +1784,9 @@ def render_transactions_tab(
                 """,
                 (int(delete_id),),
             )
-        
+    
             if not preview.empty:
                 st.caption("Transaction preview")
-        
                 st.dataframe(
                     preview,
                     use_container_width=True,
@@ -1800,17 +1800,18 @@ def render_transactions_tab(
                         "txn_date": "Date",
                     },
                 )
-        
-        if not READ_ONLY and confirm and st.button("Delete Transaction", use_container_width=True):
+    
+        if confirm and st.button("Delete Transaction", use_container_width=True):
             txn_id = int(delete_id)
+    
             deleted = exec_sql(
                 "DELETE FROM transactions WHERE transaction_id = ?;",
                 (txn_id,),
             )
-        
+    
             if deleted:
                 st.success(f"Transaction #{txn_id} deleted successfully ✅")
-                refresh_data()    
+                refresh_data()   
 
 def render_reports_tab() -> None:
     st.subheader("Reports")
