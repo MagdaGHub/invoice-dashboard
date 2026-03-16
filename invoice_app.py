@@ -130,9 +130,6 @@ if not st.session_state.authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-#APP STYLING AFTER LOGIN
-
-
 # ADMIN ACCESS AFTER LOGIN
 with st.expander("Admin Access", expanded=False):
     admin_pwd = st.text_input(
