@@ -1286,24 +1286,6 @@ def render_new_transaction_tab(
         st.warning("Missing lookup data. Check your reference tables.")
         return
 
-    # confirmation from last successful save
-    if st.session_state.get("last_saved_txn"):
-        s = st.session_state["last_saved_txn"]
-        st.success("Transaction saved successfully ✅")
-        st.markdown(
-            f"""
-**Saved details**
-- **Project:** {s['project_name']}
-- **Vendor:** {s['vendor_name']}
-- **Build Category:** {s['category_name']}
-- **Phase:** {s['phase_name']}
-- **Line Item:** {s['line_item_name']}
-- **Amount:** ${s['amount']:,.2f}
-- **Transaction Date:** {s['txn_date']}
-- **Receipt Number:** {s['receipt_number'] or '—'}
-- **Notes:** {s['notes'] or '—'}
-"""
-        )
     with st.form("new_transaction_form", clear_on_submit=True):
         c1, c2, c3 = st.columns(3)
 
@@ -1322,6 +1304,7 @@ def render_new_transaction_tab(
                     vendors, "vendor_id", "vendor_name", x
                 ),
             )
+
         with c2:
             category_id = st.selectbox(
                 "Build Category",
@@ -1331,10 +1314,12 @@ def render_new_transaction_tab(
                 ),
             )
             phase_filtered = get_phase_options(phases, category_id)
+
             if phase_filtered.empty:
                 st.warning("No phases for this build category.")
-                submitted = st.form_submit_button("Save Transaction", disabled=True)
+                st.form_submit_button("Save Transaction", disabled=True)
                 return
+
             phase_id = st.selectbox(
                 "Phase",
                 phase_filtered["phase_id"].tolist(),
@@ -1342,6 +1327,7 @@ def render_new_transaction_tab(
                     phase_filtered, "phase_id", "name", x
                 ),
             )
+
         with c3:
             li_filtered = get_line_item_options(line_items, phase_id)
             if li_filtered.empty:
@@ -1355,6 +1341,7 @@ def render_new_transaction_tab(
                         li_filtered, "line_item_id", "name", x
                     ),
                 )
+
         amount = st.number_input(
             "Amount",
             min_value=0.0,
@@ -1370,12 +1357,15 @@ def render_new_transaction_tab(
             type="primary",
             disabled=(line_item_id is None or st.session_state.saving_txn),
         )
+
     if submitted:
         st.session_state.saving_txn = True
+
         if amount <= 0:
             st.error("Amount must be greater than 0.")
             st.session_state.saving_txn = False
             return
+
         saved = exec_sql(
             """
             INSERT INTO transactions (
@@ -1395,6 +1385,7 @@ def render_new_transaction_tab(
                 datetime.now().isoformat(timespec="seconds"),
             ),
         )
+
         st.session_state.saving_txn = False
 
         if saved:
@@ -1420,6 +1411,24 @@ def render_new_transaction_tab(
                 "notes": notes.strip(),
             }
             refresh_data()
+
+    if st.session_state.get("last_saved_txn"):
+        s = st.session_state["last_saved_txn"]
+        st.success("Transaction saved successfully ✅")
+        st.markdown(
+            f"""
+**Saved details**
+- **Project:** {s['project_name']}
+- **Vendor:** {s['vendor_name']}
+- **Build Category:** {s['category_name']}
+- **Phase:** {s['phase_name']}
+- **Line Item:** {s['line_item_name']}
+- **Amount:** ${s['amount']:,.2f}
+- **Transaction Date:** {s['txn_date']}
+- **Receipt Number:** {s['receipt_number'] or '—'}
+- **Notes:** {s['notes'] or '—'}
+"""
+        )
             
 def render_transactions_tab(
     projects: pd.DataFrame,
