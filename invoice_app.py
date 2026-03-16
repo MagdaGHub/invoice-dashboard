@@ -1749,39 +1749,74 @@ def render_transactions_tab(
                 refresh_data()
 
     if not READ_ONLY:
-        st.markdown("### Delete transaction")
-        del_col1, del_col2 = st.columns([1, 1])
-    
-        with del_col1:
+        st.markdown("### Delete Transaction")
+        col1, col2 = st.columns([1,1])
+        
+        with col1:
             delete_id = st.number_input(
                 "Transaction ID",
                 min_value=1,
                 step=1,
                 key="delete_txn_id",
             )
-        with del_col2:
+        with col2:
             st.write("")
             st.write("")
-            if not READ_ONLY and confirm and st.button("Delete", use_container_width=True):
-                txn_id = int(delete_id)
-                
-                deleted = exec_sql(
-                    "DELETE FROM transactions WHERE transaction_id = ?;",
-                    (txn_id,),
+            confirm = st.checkbox("Confirm delete")
+        
+        # Show transaction preview
+        if delete_id:
+            preview = load_df(
+                """
+                SELECT
+                    t.transaction_id,
+                    p.project_name,
+                    v.vendor_name,
+                    li.name AS line_item,
+                    t.amount,
+                    t.txn_date
+                FROM transactions t
+                LEFT JOIN projects p ON p.project_id = t.project_id
+                LEFT JOIN vendors v ON v.vendor_id = t.vendor_id
+                LEFT JOIN line_item li ON li.line_item_id = t.line_item_id
+                WHERE t.transaction_id = ?
+                """,
+                (int(delete_id),),
+            )
+        
+            if not preview.empty:
+                st.caption("Transaction preview")
+        
+                st.dataframe(
+                    preview,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "transaction_id": "Transaction ID",
+                        "project_name": "Project",
+                        "vendor_name": "Vendor",
+                        "line_item": "Line Item",
+                        "amount": st.column_config.NumberColumn("Amount", format="$%,.2f"),
+                        "txn_date": "Date",
+                    },
                 )
-                if deleted:
-                    st.success(f"Transaction #{txn_id} deleted ✅")
-                    refresh_data()
+        
+        if not READ_ONLY and confirm and st.button("Delete Transaction", use_container_width=True):
+            txn_id = int(delete_id)
+            deleted = exec_sql(
+                "DELETE FROM transactions WHERE transaction_id = ?;",
+                (txn_id,),
+            )
+        
+            if deleted:
+                st.success(f"Transaction #{txn_id} deleted successfully ✅")
+                refresh_data()    
 
 def render_reports_tab() -> None:
     st.subheader("Reports")
-
     df = load_transactions_joined()
-
     st.markdown("## All Projects – Planned vs Actual")
-
     all_projects_bva = load_project_budget_vs_actual()
-
     if all_projects_bva.empty:
         st.info("No budget or actual data found yet.")
     else:
