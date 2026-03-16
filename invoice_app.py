@@ -152,7 +152,8 @@ if not st.session_state.authenticated:
     """, unsafe_allow_html=True)
 
 # ADMIN ACCESS AFTER LOGIN
-with st.expander("Admin Access"):
+#with st.expander("Admin Access"):
+    st.markdown("#### Admin Access")
     top1, top2 = st.columns([3, 1])
         
     with top1:
