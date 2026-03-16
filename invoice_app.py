@@ -82,7 +82,7 @@ body {
     with c2:
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
 
-        st.image("logo.png", width=120)
+        st.image("LogoWhiteBgrd.png", width=120)
         
         st.markdown(
             '<div class="login-title">🔒 Invoice Dashboard</div>', 
