@@ -176,25 +176,6 @@ READ_ONLY = not st.session_state.is_admin
 DB_PATH = "VendorInvoices.sqlite"
 
 pd.options.display.float_format = "{:,.2f}".format
-st.markdown(
-    """
-    <style>
-    /* Make KPI numbers larger */
-    [data-testid="stMetricValue"] {
-        font-size: 32px;
-    }
-    /* Reduce space between label and number */
-    [data-testid="stMetricLabel"] {
-        padding-bottom: 0px;
-    }
-    /* Reduce vertical spacing of metric blocks */
-    [data-testid="stMetric"] {
-        padding: 5px 10px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 SESSION_DEFAULTS = {
     "saving_txn": False,
@@ -2496,3 +2477,6 @@ def main() -> None:
     if st.session_state.is_admin:
         with tab4:
             render_vendor_admin_tab()
+
+if __name__ == "__main__":
+    main()
