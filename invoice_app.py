@@ -131,25 +131,15 @@ if not st.session_state.authenticated:
     st.stop()
 
 #APP STYLING AFTER LOGIN
-    st.markdown("""
-    <style>
-    [data-testid="stAppViewContainer"] > .main {
-        padding-top: 1rem !important;
-    }
-    .block-container {
-        padding-top: 1rem !important;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 32px;
-    }
-    [data-testid="stMetricLabel"] {
-        padding-bottom: 0px;
-    }
-    [data-testid="stMetric"] {
-        padding: 5px 10px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+st.markdown("""
+<style>
+[data-testid="stAppViewContainer"] > .main {padding-top: 1rem !important;}
+.block-container {padding-top: 1rem !important;}
+[data-testid="stMetricValue"] {font-size: 32px;}
+[data-testid="stMetricLabel"] {padding-bottom: 0px;}
+[data-testid="stMetric"] {padding: 5px 10px;}
+</style>
+""", unsafe_allow_html=True)
 
 # ADMIN ACCESS AFTER LOGIN
 with st.expander("Admin Access"):
