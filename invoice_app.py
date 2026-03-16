@@ -23,78 +23,71 @@ if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
 
 # LOGIN PAGE
-if not st.session_state.authenticated:
-    st.markdown("""
-    <style>
-    header,
-    [data-testid="stHeader"],
-    [data-testid="stToolbar"],
-    [data-testid="stSidebar"],
-    [data-testid="stSidebarNav"],
-    [data-testid="collapsedControl"],
-    [data-testid="stSidebarCollapsedControl"],
-    #MainMenu,
-    footer {
-        display: none !important;
-    }
-    section[data-testid="stSidebar"] {
-        display: none !important;
-    }
+st.markdown("""
+<style>
 
-    [data-testid="stSidebarCollapsedControl"],
-    [data-testid="collapsedControl"] {
-        display: none !important;
-        visibility: hidden !important;
-        width: 0 !important;
-        min-width: 0 !important;
-        max-width: 0 !important;
-        height: 0 !important;
-        min-height: 0 !important;
-        max-height: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        overflow: hidden !important;
-        position: absolute !important;
-        pointer-events: none !important;
-    }
-    [data-testid="stAppViewContainer"] > .main {
-        padding-top: 0 !important;
-    }
-    .block-container {
-        padding-top: 1.5rem !important;
-        max-width: 1200px;
-    }
-    body {
-        background-color: #f5f7fb;
-    }
-    .login-card {
-        background: white;
-        padding: 40px;
-        border-radius: 12px;
-        border: 1px solid #e6e6e6;
-        box-shadow: 0px 8px 20px rgba(0,0,0,0.05);
-    }
-    .login-title {
-        text-align: center;
-        font-size: 28px;
-        font-weight: 600;
-        margin-bottom: 10px;
-    }
-    .login-sub {
-        text-align: center;
-        color: #666;
-        margin-bottom: 25px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+/* Remove Streamlit UI */
+header {visibility: hidden;}
+[data-testid="stHeader"] {visibility: hidden;}
+[data-testid="stToolbar"] {display:none;}
+[data-testid="stSidebar"] {display:none;}
+#MainMenu {visibility:hidden;}
+footer {visibility:hidden;}
+
+/* Page background */
+body {
+    background: linear-gradient(135deg,#f6f8fc 0%,#eef1f7 100%);
+}
+
+/* Center login */
+.block-container {
+    padding-top: 80px;
+    max-width: 420px;
+}
+
+/* Login card */
+.login-card {
+    background: white;
+    padding: 40px;
+    border-radius: 14px;
+    border: 1px solid #e8e8e8;
+    box-shadow: 0px 10px 30px rgba(0,0,0,0.08);
+    text-align:center;
+}
+
+/* Title */
+.login-title {
+    font-size:28px;
+    font-weight:600;
+    margin-top:10px;
+    margin-bottom:6px;
+}
+
+/* Subtitle */
+.login-sub {
+    color:#666;
+    margin-bottom:25px;
+}
+
+/* Password field */
+[data-baseweb="input"] {
+    border-radius:8px !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns([1, 1.6, 1])
 
     with c2:
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
+
+        st.image("logo.png", width=120)
+        
         st.markdown(
             '<div class="login-title">🔒 Invoice Dashboard</div>', 
             unsafe_allow_html=True)
+        
         st.markdown(
             '<div class="login-sub">Authorized viewers only. Enter password to access project financial dashboard.</div>',
             unsafe_allow_html=True)
