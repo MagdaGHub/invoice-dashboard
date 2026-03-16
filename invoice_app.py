@@ -129,7 +129,7 @@ if not st.session_state.authenticated:
         st.caption("If you need access, please contact the dashboard owner.")
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
-    
+
 #APP STYLING AFTER LOGIN
     st.markdown("""
     <style>
@@ -150,32 +150,32 @@ if not st.session_state.authenticated:
     }
     </style>
     """, unsafe_allow_html=True)
-    
+
 # ADMIN ACCESS AFTER LOGIN
-st.markdown("#### Admin Access")
-top1, top2 = st.columns([3, 1])
-
-with top1:
-    admin_pwd = st.text_input(
-        "",
-        type="password",
-        placeholder="Admin password",
-        label_visibility="collapsed",
-        key="admin_pwd_main"
-    )
-
-with top2:
-    if not st.session_state.is_admin:
-        if st.button("Unlock admin", use_container_width=True):
-            if admin_pwd == ADMIN_PASSWORD:
-                st.session_state.is_admin = True
+    with st.expander("Admin Access"):
+    top1, top2 = st.columns([3, 1])
+    
+    with top1:
+        admin_pwd = st.text_input(
+            "",
+            type="password",
+            placeholder="Admin password",
+            label_visibility="collapsed",
+            key="admin_pwd_main"
+        )
+    
+    with top2:
+        if not st.session_state.is_admin:
+            if st.button("Unlock admin", use_container_width=True):
+                if admin_pwd == ADMIN_PASSWORD:
+                    st.session_state.is_admin = True
+                    st.rerun()
+                else:
+                    st.error("Wrong admin password")
+        else:
+            if st.button("Lock admin", use_container_width=True):
+                st.session_state.is_admin = False
                 st.rerun()
-            else:
-                st.error("Wrong admin password")
-    else:
-        if st.button("Lock admin", use_container_width=True):
-            st.session_state.is_admin = False
-            st.rerun()
 
 READ_ONLY = not st.session_state.is_admin
 
@@ -215,19 +215,6 @@ SESSION_DEFAULTS = {
     "edit_category": None,
     "edit_phase": None,
     "edit_line_item": None,
-
-    # new transaction form defaults
-    "new_project": None,
-    "new_vendor": None,
-    "new_category": None,
-    "new_phase": None,
-    "new_line_item": None,
-    "new_amount": 0.0,
-    "new_txn_date": date.today(),
-    "new_receipt_number": "",
-    "new_notes": "",
-
-    # success message after save
     "last_saved_txn": None,
 }
 
@@ -363,37 +350,6 @@ def pretty_report_table(
 def get_name_from_id(df: pd.DataFrame, id_col: str, name_col: str, value):
     matches = df.loc[df[id_col] == value, name_col]
     return matches.iloc[0] if not matches.empty else str(value)
-
-def reset_new_transaction_form(
-    projects: pd.DataFrame,
-    vendors: pd.DataFrame,
-    categories: pd.DataFrame,
-    phases: pd.DataFrame,
-    line_items: pd.DataFrame,
-) -> None:
-    if not projects.empty:
-        st.session_state.new_project = projects["project_id"].tolist()[0]
-    if not vendors.empty:
-        st.session_state.new_vendor = int(vendors["vendor_id"].tolist()[0])
-    if not categories.empty:
-        first_category = int(categories["build_category_id"].tolist()[0])
-        st.session_state.new_category = first_category
-        phase_filtered = get_phase_options(phases, first_category)
-        if not phase_filtered.empty:
-            first_phase = int(phase_filtered["phase_id"].tolist()[0])
-            st.session_state.new_phase = first_phase
-
-            li_filtered = get_line_item_options(line_items, first_phase)
-            st.session_state.new_line_item = (
-                int(li_filtered["line_item_id"].tolist()[0]) if not li_filtered.empty else None
-            )
-        else:
-            st.session_state.new_phase = None
-            st.session_state.new_line_item = None
-    st.session_state.new_amount = 0.0
-    st.session_state.new_txn_date = date.today()
-    st.session_state.new_receipt_number = ""
-    st.session_state.new_notes = ""
     
 # ============================================================
 # LOOKUPS / CACHED DATA
@@ -1848,7 +1804,6 @@ def render_transactions_tab(
                     st.success("Deleted ✅")
                     refresh_data()
 
-
 def render_reports_tab() -> None:
     st.subheader("Reports")
 
@@ -2360,6 +2315,158 @@ def render_reports_tab() -> None:
         li_chart = (bars + labels).properties(width=width, height=height)
         st.altair_chart(li_chart, use_container_width=True)
 
+def render_vendor_admin_tab() -> None:
+    st.subheader("Vendor Admin")
+
+    if not st.session_state.is_admin:
+        st.warning("Admin access required.")
+        return
+
+    vendors_df = load_df(
+        """
+        SELECT vendor_id, vendor_name
+        FROM vendors
+        ORDER BY vendor_name;
+        """
+    )
+
+    st.markdown("### Current Vendors")
+    st.dataframe(
+        vendors_df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "vendor_id": st.column_config.NumberColumn("Vendor ID", width="small"),
+            "vendor_name": st.column_config.TextColumn("Vendor Name", width="large"),
+        },
+    )
+
+    st.divider()
+
+    add_col, edit_col, delete_col = st.columns(3)
+
+    with add_col:
+        st.markdown("### Add Vendor")
+        new_vendor_name = st.text_input("New vendor name", key="admin_new_vendor_name")
+
+        if st.button("Add vendor", key="add_vendor_btn", use_container_width=True):
+            vendor_name = new_vendor_name.strip()
+            if not vendor_name:
+                st.error("Vendor name cannot be blank.")
+            else:
+                exists = load_df(
+                    "SELECT vendor_id FROM vendors WHERE LOWER(vendor_name) = LOWER(?);",
+                    (vendor_name,),
+                )
+                if not exists.empty:
+                    st.warning("Vendor already exists.")
+                else:
+                    saved = exec_sql(
+                        "INSERT INTO vendors (vendor_name) VALUES (?);",
+                        (vendor_name,),
+                    )
+                    if saved:
+                        st.success(f"Vendor added: {vendor_name}")
+                        refresh_data()
+
+    with edit_col:
+        st.markdown("### Modify Vendor")
+        if vendors_df.empty:
+            st.info("No vendors found.")
+        else:
+            edit_vendor_id = st.selectbox(
+                "Select vendor",
+                vendors_df["vendor_id"].tolist(),
+                format_func=lambda x: get_name_from_id(
+                    vendors_df, "vendor_id", "vendor_name", x
+                ),
+                key="edit_vendor_admin_id",
+            )
+
+            current_name = get_name_from_id(
+                vendors_df, "vendor_id", "vendor_name", edit_vendor_id
+            )
+
+            updated_vendor_name = st.text_input(
+                "Updated vendor name",
+                value=current_name,
+                key="updated_vendor_name",
+            )
+
+            if st.button("Save vendor name", key="save_vendor_name_btn", use_container_width=True):
+                vendor_name = updated_vendor_name.strip()
+                if not vendor_name:
+                    st.error("Vendor name cannot be blank.")
+                else:
+                    exists = load_df(
+                        """
+                        SELECT vendor_id
+                        FROM vendors
+                        WHERE LOWER(vendor_name) = LOWER(?)
+                          AND vendor_id <> ?;
+                        """,
+                        (vendor_name, int(edit_vendor_id)),
+                    )
+                    if not exists.empty:
+                        st.warning("Another vendor with this name already exists.")
+                    else:
+                        saved = exec_sql(
+                            "UPDATE vendors SET vendor_name = ? WHERE vendor_id = ?;",
+                            (vendor_name, int(edit_vendor_id)),
+                        )
+                        if saved:
+                            st.success("Vendor updated ✅")
+                            refresh_data()
+
+    with delete_col:
+        st.markdown("### Delete Vendor")
+        if vendors_df.empty:
+            st.info("No vendors found.")
+        else:
+            delete_vendor_id = st.selectbox(
+                "Vendor to delete",
+                vendors_df["vendor_id"].tolist(),
+                format_func=lambda x: get_name_from_id(
+                    vendors_df, "vendor_id", "vendor_name", x
+                ),
+                key="delete_vendor_admin_id",
+            )
+
+            delete_vendor_name = get_name_from_id(
+                vendors_df, "vendor_id", "vendor_name", delete_vendor_id
+            )
+
+            usage_df = load_df(
+                """
+                SELECT COUNT(*) AS cnt
+                FROM transactions
+                WHERE vendor_id = ?;
+                """,
+                (int(delete_vendor_id),),
+            )
+            usage_count = int(usage_df.iloc[0]["cnt"]) if not usage_df.empty else 0
+
+            if usage_count > 0:
+                st.caption(
+                    f"This vendor is used in {usage_count} transaction(s) and should not be deleted."
+                )
+            else:
+                st.caption("This vendor is not used in transactions.")
+
+            if st.button(
+                "Delete vendor",
+                key="delete_vendor_btn",
+                use_container_width=True,
+                disabled=usage_count > 0,
+            ):
+                deleted = exec_sql(
+                    "DELETE FROM vendors WHERE vendor_id = ?;",
+                    (int(delete_vendor_id),),
+                )
+                if deleted:
+                    st.success(f"Deleted vendor: {delete_vendor_name}")
+                    refresh_data()
+
 # ============================================================
 # MAIN APP
 # ============================================================
@@ -2367,24 +2474,35 @@ def main() -> None:
     init_session_state()
 
     st.title("📊 Invoice DB – Transactions & Reports")
-
     projects, vendors, categories, phases, line_items = load_lookups()
 
-    tab_dashboard, tab1, tab2, tab3 = st.tabs(
-        ["🏠 Project Dashboard", "➕ New Transaction", "📋 Transactions", "📈 Reports"]
-    )
+    if st.session_state.is_admin:
+        tab_dashboard, tab1, tab2, tab3, tab4 = st.tabs(
+            [
+                "🏠 Project Dashboard",
+                "➕ New Transaction",
+                "📋 Transactions",
+                "📈 Reports",
+                "🛠 New Vendor",
+            ]
+        )
+    else:
+        tab_dashboard, tab1, tab2, tab3 = st.tabs(
+            [
+                "🏠 Project Dashboard",
+                "➕ New Transaction",
+                "📋 Transactions",
+                "📈 Reports",
+            ]
+        )
     with tab_dashboard:
         render_dashboard_tab(projects, vendors, categories, phases, line_items)
-        
     with tab1:
         render_new_transaction_tab(projects, vendors, categories, phases, line_items)
-
     with tab2:
         render_transactions_tab(projects, vendors, categories, phases, line_items)
-
     with tab3:
         render_reports_tab()
-
-
-if __name__ == "__main__":
-    main()
+    if st.session_state.is_admin:
+        with tab4:
+            render_vendor_admin_tab()
