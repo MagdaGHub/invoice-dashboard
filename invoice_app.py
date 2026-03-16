@@ -69,12 +69,6 @@ body {background: linear-gradient(135deg,#f6f8fc 0%,#eef1f7 100%);}
     margin-bottom:25px;
     line-height: 1.5;
 }
-
-/* Password field */
-[data-baseweb="input"] {
-    border-radius:8px !important;
-}
-
 </style>
 """, unsafe_allow_html=True)
     
@@ -83,7 +77,7 @@ c1, c2, c3 = st.columns([1.2, 2.6, 1.2])
 with c2:
     st.markdown('<div class="login-card">', unsafe_allow_html=True)
 
-    st.image("LogoWhiteBgrd.png", width=120)
+    st.image("LogoWhiteBgrd.png", width=180)
         
     st.markdown(
         '<div class="login-title">🔒 Invoice Dashboard</div>', 
