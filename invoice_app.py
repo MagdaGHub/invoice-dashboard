@@ -77,7 +77,7 @@ if not st.session_state.authenticated:
             
         logo_path = Path(__file__).parent / "LogoWhiteBgrd.png"
         if logo_path.exists():
-            st.image(str(logo_path), width=180)
+            st.image(str(logo_path), width=100)
         else:
             st.warning("Logo file not found.")
             
