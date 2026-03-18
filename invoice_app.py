@@ -10,7 +10,7 @@ st.set_page_config(
     page_title="Invoice Dashboard",
     page_icon="💰",
     layout="wide",
-    #initial_sidebar_state="auto",
+    initial_sidebar_state="auto",
 )
 
 ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
@@ -27,13 +27,21 @@ if not st.session_state.authenticated:
     st.markdown("""
     <style>
     
+    /* REMOVE empty top container (the white box) */
+    [data-testid="stAppViewContainer"] .main > div:first-child {
+        display: none;
+    }
+    /* tighten top spacing */
+    .block-container {
+        padding-top: 1rem !important;
+    }
     /* Remove Streamlit UI */
     header {visibility: hidden;}
     [data-testid="stHeader"] {visibility: hidden;}
     [data-testid="stToolbar"] {display:none;}
-    #[data-testid="stSidebar"] {display:none; !important;}
-    #[data-testid="stSidebarCollapsedControl"] {display:none !important;}
-    #section[data-testid="stSidebar"] {display:none !important;}
+    [data-testid="stSidebar"] {display:none; !important;}
+    [data-testid="stSidebarCollapsedControl"] {display:none !important;}
+    section[data-testid="stSidebar"] {display:none !important;}
     #MainMenu {visibility:hidden;}
     footer {visibility:hidden;}
     
