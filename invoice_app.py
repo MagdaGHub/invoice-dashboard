@@ -1705,9 +1705,51 @@ def render_transactions_tab(
         f"Showing {len(fdf)} of {len(df)} transactions | "
         f"Total: ${fdf['amount'].sum():,.2f}"
     )
+    # -----------------------------
+    # Build filter summary
+    # -----------------------------
+    selected_filters = []
     
+    if proj_filter:
+        selected_filters.append(f"Project: {', '.join(proj_filter)}")
+    if vendor_filter:
+        selected_filters.append(f"Vendor: {', '.join(vendor_filter)}")
+    if cat_filter:
+        selected_filters.append(f"Build Category: {', '.join(cat_filter)}")
+    if phase_filter:
+        selected_filters.append(f"Phase: {', '.join(phase_filter)}")
+    if line_item_filter:
+        selected_filters.append(f"Line Item: {', '.join(line_item_filter)}")
+    
+    if search.strip():
+        selected_filters.append(f"Search: {search.strip()}")
+    
+    # only mention date filter if it is not the full range
+    full_min_date = pd.to_datetime(df["txn_date"], errors="coerce").min()
+    full_max_date = pd.to_datetime(df["txn_date"], errors="coerce").max()
+    
+    full_min_date = full_min_date.date() if pd.notnull(full_min_date) else None
+    full_max_date = full_max_date.date() if pd.notnull(full_max_date) else None
+    
+    if full_min_date and full_max_date:
+        if date_from != full_min_date or date_to != full_max_date:
+            selected_filters.append(f"Date: {date_from} to {date_to}")
+    
+    if selected_filters:
+        st.markdown("### Grouped view with phase/category totals")
+        st.caption("Filters applied: " + " | ".join(selected_filters))
+    else:
+        st.markdown("### Grouped view with phase/category totals")
+        st.caption("Filters applied: None")
+    # -----------------------------
+    # Header + filters display
+    # -----------------------------
     st.markdown("### Grouped view with phase/category totals")
-
+    st.info(
+        "Filters applied: " + " | ".join(selected_filters)
+        if selected_filters
+        else "Filters applied: None"
+    )
     display_df = build_transactions_display_with_subtotals(fdf)
     
     st.dataframe(
