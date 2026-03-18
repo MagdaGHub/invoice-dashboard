@@ -1741,15 +1741,7 @@ def render_transactions_tab(
     else:
         st.markdown("### Grouped view with phase/category totals")
         st.caption("Filters applied: None")
-    # -----------------------------
-    # Header + filters display
-    # -----------------------------
-    st.markdown("### Grouped view with phase/category totals")
-    st.info(
-        "Filters applied: " + " | ".join(selected_filters)
-        if selected_filters
-        else "Filters applied: None"
-    )
+
     display_df = build_transactions_display_with_subtotals(fdf)
     
     st.dataframe(
