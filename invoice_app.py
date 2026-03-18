@@ -2455,7 +2455,7 @@ def render_vendor_admin_tab() -> None:
 def main() -> None:
     init_session_state()
 
-    top1, top2, top3 = st.columns([5, 2, 1])
+    top1, top2, top3 = st.columns([5, 1, 1])
     with top1:
         st.title("📊 Invoice DB – Transactions & Reports")
     with top2:
