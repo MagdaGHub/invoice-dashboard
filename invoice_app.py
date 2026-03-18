@@ -25,6 +25,71 @@ if "is_admin" not in st.session_state:
 if not st.session_state.authenticated:
     st.markdown("""
     <style>
+
+    /* =========================
+       HEADER BUTTONS (compact)
+       ========================= */
+    .stButton > button,
+    .stDownloadButton > button {
+        border-radius: 10px !important;
+        border: 1px solid #e2e5ec !important;
+        background: white !important;
+        color: #2f3342 !important;
+        font-weight: 500 !important;
+        padding: 0.4rem 0.8rem !important;
+        font-size: 13px !important;
+        transition: all 0.2s ease !important;
+    }
+
+    /* Hover */
+    .stButton > button:hover,
+    .stDownloadButton > button:hover {
+        border-color: #381CC1 !important;
+        color: #381CC1 !important;
+        box-shadow: 0 4px 12px rgba(56,28,193,0.12) !important;
+    }
+    
+    /* =========================
+       LOGIN BUTTONS (bigger)
+       ========================= */
+    .login-card .stButton > button {
+        border-radius: 12px !important;
+        font-size: 15px !important;
+        padding: 0.7rem 1rem !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Viewer button (secondary) */
+    .login-card .stButton > button {
+        background: #f5f6fa !important;
+    }
+    
+    /* Admin button (primary look) */
+    .login-card .stButton:nth-of-type(2) > button {
+        background: linear-gradient(135deg, #4b2be3 0%, #381CC1 100%) !important;
+        color: white !important;
+        border: none !important;
+        box-shadow: 0 6px 18px rgba(56,28,193,0.25) !important;
+    }
+    
+    .login-card .stButton:nth-of-type(2) > button:hover {
+        box-shadow: 0 8px 22px rgba(56,28,193,0.35) !important;
+    }
+
+    /* =========================
+       INPUT FIELD POLISH
+       ========================= */
+    input[type="password"] {
+        border-radius: 10px !important;
+        padding: 0.6rem !important;
+        border: 1px solid #dfe3ea !important;
+    }
+    
+    input[type="password"]:focus {
+        border-color: #381CC1 !important;
+        box-shadow: 0 0 0 2px rgba(56,28,193,0.15) !important;
+    }
+
     /* Remove sidebar */
     [data-testid="stSidebar"] {display:none; !important;}
     [data-testid="stSidebarCollapsedControl"] {display:none !important;}
