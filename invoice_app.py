@@ -2464,7 +2464,7 @@ def main() -> None:
             if db_file.exists():
                 with open(db_file, "rb") as f:
                     st.download_button(
-                        "⬇️ Backup",
+                        "Backup Database",
                         f,
                         file_name="VendorInvoices_backup.sqlite",
                         use_container_width=True,
