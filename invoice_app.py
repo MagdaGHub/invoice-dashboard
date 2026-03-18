@@ -2468,7 +2468,16 @@ def render_vendor_admin_tab() -> None:
 def main() -> None:
     init_session_state()
 
-    st.title("📊 Invoice DB – Transactions & Reports")
+    top1, top2 = st.columns([8, 1])
+    with top1:
+        st.title("📊 Invoice DB – Transactions & Reports")
+
+    with top2:
+        if st.button("Log out", use_container_width=True):
+            st.session_state.authenticated = False
+            st.session_state.is_admin = False
+            st.rerun()
+            
     projects, vendors, categories, phases, line_items = load_lookups()
 
     if st.session_state.is_admin:
