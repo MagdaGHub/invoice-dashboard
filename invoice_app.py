@@ -76,8 +76,13 @@ if not st.session_state.authenticated:
     
     with c2:
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
-    
-        st.image("LogoWhiteBgrd.png", width=120)
+            
+        logo_path = Path(__file__).parent / "LogoWhiteBgrd.png"
+        
+        if logo_path.exists():
+            st.image(str(logo_path), width=180)
+        else:
+            st.warning("Logo file not found.")
             
         st.markdown(
             '<div class="login-title">🔒 Invoice Dashboard</div>', 
