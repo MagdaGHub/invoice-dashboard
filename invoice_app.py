@@ -47,13 +47,13 @@ if not st.session_state.authenticated:
     
     /* Page background */
     body {background: linear-gradient(135deg,#f6f8fc 0%,#eef1f7 100%);}
-    [data-testid="stAppViewContainer"] > .main {
+/*    [data-testid="stAppViewContainer"] > .main {
         padding-top: 0rem !important;
     }
     .block-container {
         padding-top: 3rem !important;
         max-width: 1100px !important;
-    }
+    }*/
     
     /* Login card */
     .login-card {
