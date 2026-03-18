@@ -1573,7 +1573,7 @@ def build_transactions_display_with_subtotals(fdf: pd.DataFrame) -> pd.DataFrame
             "Vendor": "",
             "Date": "",
             "Receipt": "",
-            "Amount ($)": cat_total,
+            "Amount ($)": None,
             "Notes": "",
         })
 
@@ -1588,7 +1588,7 @@ def build_transactions_display_with_subtotals(fdf: pd.DataFrame) -> pd.DataFrame
                 "Vendor": "",
                 "Date": "",
                 "Receipt": "",
-                "Amount ($)": phase_total,
+                "Amount ($)": None,
                 "Notes": "",
             })
 
