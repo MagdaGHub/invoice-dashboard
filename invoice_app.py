@@ -31,9 +31,9 @@ if not st.session_state.authenticated:
     header {visibility: hidden;}
     [data-testid="stHeader"] {visibility: hidden;}
     [data-testid="stToolbar"] {display:none;}
-    [data-testid="stSidebar"] {display:none; !important;}
-    [data-testid="stSidebarCollapsedControl"] {display:none !important;}
-    section[data-testid="stSidebar"] {display:none !important;}
+    #[data-testid="stSidebar"] {display:none; !important;}
+    #[data-testid="stSidebarCollapsedControl"] {display:none !important;}
+    #section[data-testid="stSidebar"] {display:none !important;}
     #MainMenu {visibility:hidden;}
     footer {visibility:hidden;}
     
