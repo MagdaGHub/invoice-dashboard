@@ -40,7 +40,7 @@ if not st.session_state.authenticated:
     [data-testid="stSidebarCollapsedControl"] {display:none !important;}
     section[data-testid="stSidebar"] {display:none !important;}
     #MainMenu {visibility:hidden;}
-    footer {visibility:hidden;}*/
+    footer {visibility:hidden;}
     
     /* Page background */
     body {background: linear-gradient(135deg,#f6f8fc 0%,#eef1f7 100%);}
@@ -70,7 +70,7 @@ if not st.session_state.authenticated:
         margin-bottom:25px;
         line-height: 1.5;
     }
-    </style>
+    </style>*/
     """, unsafe_allow_html=True)
         
     c1, c2, c3 = st.columns([1.2, 2.6, 1.2])
