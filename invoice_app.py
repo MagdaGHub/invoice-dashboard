@@ -25,9 +25,56 @@ if "is_admin" not in st.session_state:
 if not st.session_state.authenticated:
     st.markdown("""
     <style>
-
     /* =========================
-       HEADER BUTTONS (compact)
+       GLOBAL LAYOUT
+       ========================= */
+    [data-testid="stSidebar"],
+    section[data-testid="stSidebar"],
+    [data-testid="stSidebarCollapsedControl"] {
+        display: none !important;
+    }
+    
+    [data-testid="stVerticalBlock"] > div:first-child:has(div:empty) {
+        display: none !important;
+    }
+    
+    body {
+        background: linear-gradient(135deg, #f6f8fc 0%, #eef1f7 100%);
+    }
+    
+    .block-container {
+        padding-top: 3rem !important;
+        max-width: 900px !important;
+    }
+    
+    /* =========================
+       LOGIN CARD
+       ========================= */
+    .login-card {
+        background: white;
+        padding: 35px 40px;
+        border-radius: 16px;
+        border: 1px solid #e6e6e6;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+        text-align: center;
+    }
+    
+    .login-title {
+        font-size: 26px;
+        font-weight: 600;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .login-sub {
+        color: #666;
+        margin-bottom: 25px;
+        line-height: 1.5;
+        font-size: 15px;
+    }
+    
+    /* =========================
+       HEADER BUTTONS
        ========================= */
     .stButton > button,
     .stDownloadButton > button {
@@ -36,103 +83,67 @@ if not st.session_state.authenticated:
         background: white !important;
         color: #2f3342 !important;
         font-weight: 500 !important;
-        padding: 0.4rem 0.8rem !important;
         font-size: 13px !important;
+        padding: 0.4rem 0.8rem !important;
         transition: all 0.2s ease !important;
     }
-
-    /* Hover */
+    
     .stButton > button:hover,
     .stDownloadButton > button:hover {
         border-color: #381CC1 !important;
         color: #381CC1 !important;
-        box-shadow: 0 4px 12px rgba(56,28,193,0.12) !important;
+        box-shadow: 0 4px 12px rgba(56, 28, 193, 0.12) !important;
     }
     
     /* =========================
-       LOGIN BUTTONS (bigger)
+       LOGIN BUTTONS
        ========================= */
     .login-card .stButton > button {
         border-radius: 12px !important;
         font-size: 15px !important;
-        padding: 0.7rem 1rem !important;
         font-weight: 600 !important;
-    }
-    
-    /* Viewer button (secondary) */
-    .login-card .stButton > button {
+        padding: 0.7rem 1rem !important;
         background: #f5f6fa !important;
     }
     
-    /* Admin button (primary look) */
+    /* Note: nth-of-type may be fragile depending on Streamlit structure */
     .login-card .stButton:nth-of-type(2) > button {
         background: linear-gradient(135deg, #4b2be3 0%, #381CC1 100%) !important;
         color: white !important;
         border: none !important;
-        box-shadow: 0 6px 18px rgba(56,28,193,0.25) !important;
+        box-shadow: 0 6px 18px rgba(56, 28, 193, 0.25) !important;
     }
     
     .login-card .stButton:nth-of-type(2) > button:hover {
-        box-shadow: 0 8px 22px rgba(56,28,193,0.35) !important;
+        color: white !important;
+        box-shadow: 0 8px 22px rgba(56, 28, 193, 0.35) !important;
     }
-
+    
     /* =========================
-       INPUT FIELD POLISH
+       TEXT INPUT
        ========================= */
-    input[type="password"] {
-        border-radius: 10px !important;
-        padding: 0.6rem !important;
+    [data-testid="stTextInput"] > div {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+    
+    [data-testid="stTextInput"] input {
+        border-radius: 12px !important;
         border: 1px solid #dfe3ea !important;
+        background: #f7f8fc !important;
+        padding: 0.7rem !important;
+        font-size: 15px !important;
+        box-shadow: none !important;
     }
     
-    input[type="password"]:focus {
+    [data-testid="stTextInput"] input:focus {
         border-color: #381CC1 !important;
-        box-shadow: 0 0 0 2px rgba(56,28,193,0.15) !important;
-    }
-
-    /* Remove sidebar */
-    [data-testid="stSidebar"] {display:none; !important;}
-    [data-testid="stSidebarCollapsedControl"] {display:none !important;}
-    section[data-testid="stSidebar"] {display:none !important;}
-    
-    /* Remove top empty block */
-    [data-testid="stVerticalBlock"] > div:first-child:has(div:empty) {display: none !important;}
-    
-    /* Page background */
-    body {background: linear-gradient(135deg,#f6f8fc 0%,#eef1f7 100%);}
-    
-    /* Center layout */
-    .block-container {
-        padding-top: 3rem !important;
-        max-width: 900px !important;
-    }
-    
-    /* Login card */
-    .login-card {
-        background: white;
-        padding: 35px 40px;
-        border-radius: 16px;
-        border: 1px solid #e6e6e6;
-        box-shadow: 0px 12px 30px rgba(0,0,0,0.08);
-        text-align: center;
-    }
-    
-    /* Title */
-    .login-title {
-        font-size:26px;
-        font-weight:600;
-        margin-top:10px;
-        margin-bottom:10px;
-    }
-    
-    /* Subtitle */
-    .login-sub {
-        color:#666;
-        margin-bottom:25px;
-        line-height: 1.5;
-        font-size:15px;
+        box-shadow: 0 0 0 2px rgba(56, 28, 193, 0.15) !important;
+        outline: none !important;
     }
     </style>
+    
     """, unsafe_allow_html=True)
         
     c1, c2, c3 = st.columns([1.2, 2.6, 1.2])
