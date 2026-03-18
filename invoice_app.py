@@ -977,19 +977,6 @@ def planned_vs_actual_chart(df: pd.DataFrame, x_field: str, title: str):
 # ============================================================
 # TAB RENDERERS
 # ============================================================
-# DB backup download
-db_file = Path(DB_PATH)
-if st.session_state.is_admin:
-    if db_file.exists():
-        with open(db_file, "rb") as f:
-            st.download_button(
-                label="Download Database Backup",
-                data=f,
-                file_name="VendorInvoices_backup.sqlite",
-                mime="application/x-sqlite3",
-            )
-    else:
-        st.warning("Database file not found.")
 
 def render_dashboard_tab(
     projects: pd.DataFrame,
