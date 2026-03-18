@@ -27,9 +27,9 @@ if not st.session_state.authenticated:
     st.markdown("""
     <style>
     
-    /* REMOVE empty top container (the white box) */
+/*    # REMOVE empty top container (the white box)
     [data-testid="stAppViewContainer"] .main > div:first-child {display: none;}
-    /* tighten top spacing */
+    # tighten top spacing
     .block-container {padding-top: 1rem !important;}
     
     /* Remove Streamlit UI */
@@ -40,7 +40,7 @@ if not st.session_state.authenticated:
     [data-testid="stSidebarCollapsedControl"] {display:none !important;}
     section[data-testid="stSidebar"] {display:none !important;}
     #MainMenu {visibility:hidden;}
-    footer {visibility:hidden;}
+    footer {visibility:hidden;}*/
     
     /* Page background */
     body {background: linear-gradient(135deg,#f6f8fc 0%,#eef1f7 100%);}
