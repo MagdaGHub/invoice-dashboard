@@ -2468,11 +2468,21 @@ def render_vendor_admin_tab() -> None:
 def main() -> None:
     init_session_state()
 
-    top1, top2 = st.columns([8, 1])
+    top1, top2, top3 = st.columns([5, 2, 1])
     with top1:
         st.title("📊 Invoice DB – Transactions & Reports")
-
     with top2:
+        if st.session_state.is_admin:
+            db_file = Path(DB_PATH)
+            if db_file.exists():
+                with open(db_file, "rb") as f:
+                    st.download_button(
+                        "⬇️ Backup",
+                        f,
+                        file_name="VendorInvoices_backup.sqlite",
+                        use_container_width=True,
+                    )
+    with top3:
         if st.button("Log out", use_container_width=True):
             st.session_state.authenticated = False
             st.session_state.is_admin = False
