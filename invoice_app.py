@@ -1510,8 +1510,8 @@ def build_transactions_display_with_subtotals(fdf: pd.DataFrame) -> pd.DataFrame
             "vendor_name": "",
             "txn_date": "",
             "receipt_number": "",
-            "amount": cat_total,
-            "notes": "Category total",
+            "amount ($)": cat_total,
+            "notes": f"Category: {category} - total",
         })
 
         for phase, phase_df in cat_df.groupby("phase", sort=False):
@@ -1526,8 +1526,8 @@ def build_transactions_display_with_subtotals(fdf: pd.DataFrame) -> pd.DataFrame
                 "vendor_name": "",
                 "txn_date": "",
                 "receipt_number": "",
-                "amount": phase_total,
-                "notes": "Phase total",
+                "amount ($)": phase_total,
+                "notes": f"Phase: {phase} - total",
             })
 
             for _, r in phase_df.iterrows():
