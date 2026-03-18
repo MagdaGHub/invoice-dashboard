@@ -26,13 +26,12 @@ if not st.session_state.authenticated:
     # LOGIN PAGE
     st.markdown("""
     <style>
+
+    [data-testid="stVerticalBlock"] > div:first-child:has(div:empty) {
+    display: none !important;
+    }
     
-/*    # REMOVE empty top container (the white box)
-    [data-testid="stAppViewContainer"] .main > div:first-child {display: none;}
-    # tighten top spacing
-    .block-container {padding-top: 1rem !important;}
-    
-    /* Remove Streamlit UI */
+    # Remove Streamlit UI
     header {visibility: hidden;}
     [data-testid="stHeader"] {visibility: hidden;}
     [data-testid="stToolbar"] {display:none;}
@@ -70,7 +69,7 @@ if not st.session_state.authenticated:
         margin-bottom:25px;
         line-height: 1.5;
     }
-    </style>*/
+    </style>
     """, unsafe_allow_html=True)
         
     c1, c2, c3 = st.columns([1.2, 2.6, 1.2])
