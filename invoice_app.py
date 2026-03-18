@@ -22,101 +22,102 @@ if "authenticated" not in st.session_state:
 if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
 
-# LOGIN PAGE
-st.markdown("""
-<style>
-
-/* Remove Streamlit UI */
-header {visibility: hidden;}
-[data-testid="stHeader"] {visibility: hidden;}
-[data-testid="stToolbar"] {display:none;}
-[data-testid="stSidebar"] {display:none;}
-#MainMenu {visibility:hidden;}
-footer {visibility:hidden;}
-
-/* Page background */
-body {background: linear-gradient(135deg,#f6f8fc 0%,#eef1f7 100%);}
-[data-testid="stAppViewContainer"] > .main {
-    padding-top: 0rem !important;
-}
-.block-container {
-    padding-top: 3rem !important;
-    max-width: 1100px !important;
-}
-
-/* Login card */
-.login-card {
-    background: white;
-    padding: 40px;
-    border-radius: 14px;
-    border: 1px solid #e8e8e8;
-    box-shadow: 0px 10px 30px rgba(0,0,0,0.08);
-    text-align:center;
-}
-
-/* Title */
-.login-title {
-    font-size:28px;
-    font-weight:600;
-    margin-top:10px;
-    margin-bottom:8px;
-    white-space: normal;
-}
-
-/* Subtitle */
-.login-sub {
-    color:#666;
-    margin-bottom:25px;
-    line-height: 1.5;
-}
-</style>
-""", unsafe_allow_html=True)
+if not st.session_state.authenticated:
+    # LOGIN PAGE
+    st.markdown("""
+    <style>
     
-c1, c2, c3 = st.columns([1.2, 2.6, 1.2])
-
-with c2:
-    st.markdown('<div class="login-card">', unsafe_allow_html=True)
-
-    st.image("LogoWhiteBgrd.png", width=180)
+    /* Remove Streamlit UI */
+    header {visibility: hidden;}
+    [data-testid="stHeader"] {visibility: hidden;}
+    [data-testid="stToolbar"] {display:none;}
+    [data-testid="stSidebar"] {display:none;}
+    #MainMenu {visibility:hidden;}
+    footer {visibility:hidden;}
+    
+    /* Page background */
+    body {background: linear-gradient(135deg,#f6f8fc 0%,#eef1f7 100%);}
+    [data-testid="stAppViewContainer"] > .main {
+        padding-top: 0rem !important;
+    }
+    .block-container {
+        padding-top: 3rem !important;
+        max-width: 1100px !important;
+    }
+    
+    /* Login card */
+    .login-card {
+        background: white;
+        padding: 40px;
+        border-radius: 14px;
+        border: 1px solid #e8e8e8;
+        box-shadow: 0px 10px 30px rgba(0,0,0,0.08);
+        text-align:center;
+    }
+    
+    /* Title */
+    .login-title {
+        font-size:28px;
+        font-weight:600;
+        margin-top:10px;
+        margin-bottom:8px;
+        white-space: normal;
+    }
+    
+    /* Subtitle */
+    .login-sub {
+        color:#666;
+        margin-bottom:25px;
+        line-height: 1.5;
+    }
+    </style>
+    """, unsafe_allow_html=True)
         
-    st.markdown(
-        '<div class="login-title">🔒 Invoice Dashboard</div>', 
-        unsafe_allow_html=True)
-        
-    st.markdown(
-        '<div class="login-sub">Authorized viewers only. Enter password to access project financial dashboard.</div>',
-        unsafe_allow_html=True)
-
-    pwd = st.text_input(
-        "Password",
-        type="password",
-        placeholder="Enter password",
-        label_visibility="collapsed"
-    )
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        if st.button("Viewer Access", use_container_width=True):
-            if pwd == APP_PASSWORD:
-                st.session_state.authenticated = True
-                st.session_state.is_admin = False
-                st.rerun()
-            else:
-                st.error("Incorrect viewer password")
-
-    with col2:
-        if st.button("Admin Access", use_container_width=True):
-            if pwd == ADMIN_PASSWORD:
-                st.session_state.authenticated = True
-                st.session_state.is_admin = True
-                st.rerun()
-            else:
-                st.error("Incorrect admin password")
-
-    st.caption("If you need access, please contact the dashboard owner.")
-    st.markdown("</div>", unsafe_allow_html=True)
-st.stop()
+    c1, c2, c3 = st.columns([1.2, 2.6, 1.2])
+    
+    with c2:
+        st.markdown('<div class="login-card">', unsafe_allow_html=True)
+    
+        st.image("LogoWhiteBgrd.png", width=120)
+            
+        st.markdown(
+            '<div class="login-title">🔒 Invoice Dashboard</div>', 
+            unsafe_allow_html=True)
+            
+        st.markdown(
+            '<div class="login-sub">Authorized viewers only. Enter password to access project financial dashboard.</div>',
+            unsafe_allow_html=True)
+    
+        pwd = st.text_input(
+            "Password",
+            type="password",
+            placeholder="Enter password",
+            label_visibility="collapsed"
+        )
+    
+        col1, col2 = st.columns(2)
+    
+        with col1:
+            if st.button("Viewer Access", use_container_width=True):
+                if pwd == APP_PASSWORD:
+                    st.session_state.authenticated = True
+                    st.session_state.is_admin = False
+                    st.rerun()
+                else:
+                    st.error("Incorrect viewer password")
+    
+        with col2:
+            if st.button("Admin Access", use_container_width=True):
+                if pwd == ADMIN_PASSWORD:
+                    st.session_state.authenticated = True
+                    st.session_state.is_admin = True
+                    st.rerun()
+                else:
+                    st.error("Incorrect admin password")
+    
+        st.caption("If you need access, please contact the dashboard owner.")
+        st.markdown("</div>", unsafe_allow_html=True)
+    st.stop()
 
 # ADMIN ACCESS AFTER LOGIN
 with st.expander("Admin Access", expanded=False):
