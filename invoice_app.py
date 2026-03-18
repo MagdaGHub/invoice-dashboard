@@ -1482,7 +1482,70 @@ def render_new_transaction_tab(
 - **Notes:** {s['notes'] or '—'}
 """
         )
-            
+
+def build_transactions_display_with_subtotals(fdf: pd.DataFrame) -> pd.DataFrame:
+    if fdf.empty:
+        return fdf.copy()
+
+    work = fdf.copy()
+    work["txn_date_sort"] = pd.to_datetime(work["txn_date"], errors="coerce")
+
+    work = work.sort_values(
+        by=["category_sort", "phase_sort", "line_item_sort", "txn_date_sort", "transaction_id"],
+        ascending=[True, True, True, True, True],
+        na_position="last",
+    )
+
+    rows = []
+
+    for category, cat_df in work.groupby("category", sort=False):
+        cat_total = float(cat_df["amount"].fillna(0).sum())
+
+        rows.append({
+            "transaction_id": None,
+            "project_name": "",
+            "category": f"▶ {category}",
+            "phase": "",
+            "line_item": "",
+            "vendor_name": "",
+            "txn_date": "",
+            "receipt_number": "",
+            "amount": cat_total,
+            "notes": "Category total",
+        })
+
+        for phase, phase_df in cat_df.groupby("phase", sort=False):
+            phase_total = float(phase_df["amount"].fillna(0).sum())
+
+            rows.append({
+                "transaction_id": None,
+                "project_name": "",
+                "category": "",
+                "phase": f"• {phase}",
+                "line_item": "",
+                "vendor_name": "",
+                "txn_date": "",
+                "receipt_number": "",
+                "amount": phase_total,
+                "notes": "Phase total",
+            })
+
+            for _, r in phase_df.iterrows():
+                rows.append({
+                    "transaction_id": r["transaction_id"],
+                    "project_name": r["project_name"],
+                    "category": "",
+                    "phase": "",
+                    "line_item": r["line_item"],
+                    "vendor_name": r["vendor_name"],
+                    "txn_date": r["txn_date"],
+                    "receipt_number": r["receipt_number"],
+                    "amount": r["amount"],
+                    "notes": r["notes"],
+                })
+
+    return pd.DataFrame(rows)
+
 def render_transactions_tab(
     projects: pd.DataFrame,
     vendors: pd.DataFrame,
@@ -1496,6 +1559,12 @@ def render_transactions_tab(
     st.subheader("Transactions")
 
     df = load_transactions_joined()
+
+    df = df.sort_values(
+        by=["category_sort", "phase_sort", "line_item_sort", "txn_date"],
+        ascending=[True, True, True, True],
+        na_position="last",
+    )
 
     if df.empty:
         st.info("No transactions found.")
@@ -1566,12 +1635,55 @@ def render_transactions_tab(
             fdf["receipt_number"].fillna("").str.lower().str.contains(s)
             | fdf["notes"].fillna("").str.lower().str.contains(s)
         ]
-
+    fdf = fdf.sort_values(
+        by=["category_sort", "phase_sort", "line_item_sort", "txn_date"],
+        ascending=[True, True, True, True],
+        na_position="last",
+    )
     st.caption(
         f"Showing {len(fdf)} of {len(df)} transactions | "
         f"Total: ${fdf['amount'].sum():,.2f}"
     )
-
+    
+    st.markdown("### Grouped view with phase/category totals")
+    
+    display_df = build_transactions_display_with_subtotals(fdf)
+    
+    st.dataframe(
+        display_df[
+            [
+                "transaction_id",
+                "project_name",
+                "category",
+                "phase",
+                "line_item",
+                "vendor_name",
+                "txn_date",
+                "receipt_number",
+                "amount",
+                "notes",
+            ]
+        ],
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "transaction_id": st.column_config.NumberColumn("ID", width="small"),
+            "project_name": st.column_config.TextColumn("Project", width="medium"),
+            "category": st.column_config.TextColumn("Category", width="medium"),
+            "phase": st.column_config.TextColumn("Phase", width="medium"),
+            "line_item": st.column_config.TextColumn("Line Item", width="medium"),
+            "vendor_name": st.column_config.TextColumn("Vendor", width="medium"),
+            "txn_date": st.column_config.TextColumn("Date", width="small"),
+            "receipt_number": st.column_config.TextColumn("Receipt", width="small"),
+            "amount": st.column_config.NumberColumn(
+                "Amount ($)", format="$%,.2f", width="small"
+            ),
+            "notes": st.column_config.TextColumn("Notes", width="long"),
+        },
+    )
+    
+    st.markdown("### Editable transaction table")
+    
     grid = fdf[
         [
             "transaction_id",
@@ -1617,8 +1729,9 @@ def render_transactions_tab(
     )
 
     if not READ_ONLY and st.button("Save inline edits", type="primary"):
-        original = grid.set_index("transaction_id")
-        new = edited.set_index("transaction_id")
+        # prevent subtotal/header rows from being treated like real transactions
+        original = grid[grid["transaction_id"].notna()].copy().set_index("transaction_id")
+        new = edited[edited["transaction_id"].notna()].copy().set_index("transaction_id")
 
         changed_ids: list[int] = []
 
