@@ -1546,6 +1546,63 @@ def build_transactions_display_with_subtotals(fdf: pd.DataFrame) -> pd.DataFrame
 
     return pd.DataFrame(rows)
 
+def build_transactions_display_with_subtotals(fdf: pd.DataFrame) -> pd.DataFrame:
+    if fdf.empty:
+        return pd.DataFrame()
+
+    work = fdf.copy()
+    work["txn_date_sort"] = pd.to_datetime(work["txn_date"], errors="coerce")
+
+    work = work.sort_values(
+        by=["category_sort", "phase_sort", "line_item_sort", "txn_date_sort", "transaction_id"],
+        ascending=[True, True, True, True, True],
+        na_position="last",
+    )
+
+    rows = []
+
+    for category, cat_df in work.groupby("category", sort=False):
+        cat_total = float(cat_df["amount"].fillna(0).sum())
+
+        rows.append({
+            "Category": f"▶ {category}",
+            "Phase": "",
+            "Line Item": "",
+            "Vendor": "",
+            "Date": "",
+            "Receipt": "",
+            "Amount ($)": cat_total,
+            "Notes": "Category total",
+        })
+
+        for phase, phase_df in cat_df.groupby("phase", sort=False):
+            phase_total = float(phase_df["amount"].fillna(0).sum())
+
+            rows.append({
+                "Category": "",
+                "Phase": f"• {phase}",
+                "Line Item": "",
+                "Vendor": "",
+                "Date": "",
+                "Receipt": "",
+                "Amount ($)": phase_total,
+                "Notes": "Phase total",
+            })
+
+            for _, r in phase_df.iterrows():
+                rows.append({
+                    "Category": "",
+                    "Phase": "",
+                    "Line Item": f"   {r['line_item']}",
+                    "Vendor": r["vendor_name"],
+                    "Date": r["txn_date"],
+                    "Receipt": r["receipt_number"],
+                    "Amount ($)": r["amount"],
+                    "Notes": r["notes"],
+                })
+
+    return pd.DataFrame(rows)
+
 def render_transactions_tab(
     projects: pd.DataFrame,
     vendors: pd.DataFrame,
@@ -1646,40 +1703,24 @@ def render_transactions_tab(
     )
     
     st.markdown("### Grouped view with phase/category totals")
-    
+
     display_df = build_transactions_display_with_subtotals(fdf)
     
-    grouped_view = display_df[
-        [
-            "category",
-            "phase",
-            "line_item",
-            "vendor_name",
-            "txn_date",
-            "receipt_number",
-            "amount",
-            "notes",
-        ]
-    ].copy()
-    
-    grouped_view = grouped_view.rename(
-        columns={
-            "category": "Category",
-            "phase": "Phase",
-            "line_item": "Line Item",
-            "vendor_name": "Vendor",
-            "txn_date": "Date",
-            "receipt_number": "Receipt",
-            "amount": "Amount ($)",
-            "notes": "Notes",
-        }
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Category": st.column_config.TextColumn("Category", width="medium"),
+            "Phase": st.column_config.TextColumn("Phase", width="medium"),
+            "Line Item": st.column_config.TextColumn("Line Item", width="large"),
+            "Vendor": st.column_config.TextColumn("Vendor", width="medium"),
+            "Date": st.column_config.TextColumn("Date", width="small"),
+            "Receipt": st.column_config.TextColumn("Receipt", width="small"),
+            "Amount ($)": st.column_config.NumberColumn("Amount ($)", format="$%,.2f", width="small"),
+            "Notes": st.column_config.TextColumn("Notes", width="medium"),
+        },
     )
-    
-    grouped_view["Amount ($)"] = grouped_view["Amount ($)"].apply(
-        lambda x: f"${x:,.2f}" if pd.notnull(x) and x != "" else ""
-    )
-
-    st.table(grouped_view)
     
     st.markdown("### Editable transaction table")
     
