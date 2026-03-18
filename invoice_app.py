@@ -1510,8 +1510,8 @@ def build_transactions_display_with_subtotals(fdf: pd.DataFrame) -> pd.DataFrame
             "vendor_name": "",
             "txn_date": "",
             "receipt_number": "",
-            "amount ($)": cat_total,
-            "notes": f"Category: {category} - total",
+            "amount": cat_total,
+            "notes": "Category total",
         })
 
         for phase, phase_df in cat_df.groupby("phase", sort=False):
@@ -1526,8 +1526,8 @@ def build_transactions_display_with_subtotals(fdf: pd.DataFrame) -> pd.DataFrame
                 "vendor_name": "",
                 "txn_date": "",
                 "receipt_number": "",
-                "amount ($)": phase_total,
-                "notes": f"Phase: {phase} - total",
+                "amount": phase_total,
+                "notes": "Phase total",
             })
 
             for _, r in phase_df.iterrows():
@@ -1565,14 +1565,14 @@ def build_transactions_display_with_subtotals(fdf: pd.DataFrame) -> pd.DataFrame
         cat_total = float(cat_df["amount"].fillna(0).sum())
 
         rows.append({
-            "Category": f"▶ {category}",
+            "Category": f"▶ {category} (${cat_total:,.2f})",
             "Phase": "",
             "Line Item": "",
             "Vendor": "",
             "Date": "",
             "Receipt": "",
             "Amount ($)": cat_total,
-            "Notes": "Category total",
+            "Notes": "",
         })
 
         for phase, phase_df in cat_df.groupby("phase", sort=False):
@@ -1580,13 +1580,13 @@ def build_transactions_display_with_subtotals(fdf: pd.DataFrame) -> pd.DataFrame
 
             rows.append({
                 "Category": "",
-                "Phase": f"• {phase}",
+                "Phase": f"• {phase} (${phase_total:,.2f})",
                 "Line Item": "",
                 "Vendor": "",
                 "Date": "",
                 "Receipt": "",
                 "Amount ($)": phase_total,
-                "Notes": "Phase total",
+                "Notes": "",
             })
 
             for _, r in phase_df.iterrows():
