@@ -1649,38 +1649,37 @@ def render_transactions_tab(
     
     display_df = build_transactions_display_with_subtotals(fdf)
     
-    st.dataframe(
-        display_df[
-            [
-                "transaction_id",
-                "project_name",
-                "category",
-                "phase",
-                "line_item",
-                "vendor_name",
-                "txn_date",
-                "receipt_number",
-                "amount",
-                "notes",
-            ]
-        ],
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "transaction_id": st.column_config.NumberColumn("ID", width="small"),
-            "project_name": st.column_config.TextColumn("Project", width="medium"),
-            "category": st.column_config.TextColumn("Category", width="medium"),
-            "phase": st.column_config.TextColumn("Phase", width="medium"),
-            "line_item": st.column_config.TextColumn("Line Item", width="medium"),
-            "vendor_name": st.column_config.TextColumn("Vendor", width="medium"),
-            "txn_date": st.column_config.TextColumn("Date", width="small"),
-            "receipt_number": st.column_config.TextColumn("Receipt", width="small"),
-            "amount": st.column_config.NumberColumn(
-                "Amount ($)", format="$%,.2f", width="small"
-            ),
-            "notes": st.column_config.TextColumn("Notes", width="long"),
-        },
+    grouped_view = display_df[
+        [
+            "category",
+            "phase",
+            "line_item",
+            "vendor_name",
+            "txn_date",
+            "receipt_number",
+            "amount",
+            "notes",
+        ]
+    ].copy()
+    
+    grouped_view = grouped_view.rename(
+        columns={
+            "category": "Category",
+            "phase": "Phase",
+            "line_item": "Line Item",
+            "vendor_name": "Vendor",
+            "txn_date": "Date",
+            "receipt_number": "Receipt",
+            "amount": "Amount ($)",
+            "notes": "Notes",
+        }
     )
+    
+    grouped_view["Amount ($)"] = grouped_view["Amount ($)"].apply(
+        lambda x: f"${x:,.2f}" if pd.notnull(x) and x != "" else ""
+    )
+
+    st.table(grouped_view)
     
     st.markdown("### Editable transaction table")
     
