@@ -23,44 +23,41 @@ if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
 
 if not st.session_state.authenticated:
-    # LOGIN PAGE
     st.markdown("""
     <style>
-
-    [data-testid="stVerticalBlock"] > div:first-child:has(div:empty) {
-    display: none !important;
-    }
-    
-    # Remove Streamlit UI
-    header {visibility: hidden;}
-    [data-testid="stHeader"] {visibility: hidden;}
-    [data-testid="stToolbar"] {display:none;}
+    /* Remove sidebar */
     [data-testid="stSidebar"] {display:none; !important;}
     [data-testid="stSidebarCollapsedControl"] {display:none !important;}
     section[data-testid="stSidebar"] {display:none !important;}
-    #MainMenu {visibility:hidden;}
-    footer {visibility:hidden;}
+    
+    /* Remove top empty block */
+    [data-testid="stVerticalBlock"] > div:first-child:has(div:empty) {display: none !important;}
     
     /* Page background */
     body {background: linear-gradient(135deg,#f6f8fc 0%,#eef1f7 100%);}
     
+    /* Center layout */
+    .block-container {
+        padding-top: 3rem !important;
+        max-width: 600px !important;
+    }
+    
     /* Login card */
     .login-card {
         background: white;
-        padding: 40px;
-        border-radius: 14px;
-        border: 1px solid #e8e8e8;
-        box-shadow: 0px 10px 30px rgba(0,0,0,0.08);
-        text-align:center;
+        padding: 35px 40px;
+        border-radius: 16px;
+        border: 1px solid #e6e6e6;
+        box-shadow: 0px 12px 30px rgba(0,0,0,0.08);
+        text-align: center;
     }
     
     /* Title */
     .login-title {
-        font-size:28px;
+        font-size:26px;
         font-weight:600;
         margin-top:10px;
-        margin-bottom:8px;
-        white-space: normal;
+        margin-bottom:10px;
     }
     
     /* Subtitle */
@@ -68,6 +65,7 @@ if not st.session_state.authenticated:
         color:#666;
         margin-bottom:25px;
         line-height: 1.5;
+        font-size:15px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -78,7 +76,6 @@ if not st.session_state.authenticated:
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
             
         logo_path = Path(__file__).parent / "LogoWhiteBgrd.png"
-        
         if logo_path.exists():
             st.image(str(logo_path), width=180)
         else:
