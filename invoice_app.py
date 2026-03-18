@@ -39,7 +39,7 @@ if not st.session_state.authenticated:
     /* Center layout */
     .block-container {
         padding-top: 3rem !important;
-        max-width: 600px !important;
+        max-width: 900px !important;
     }
     
     /* Login card */
