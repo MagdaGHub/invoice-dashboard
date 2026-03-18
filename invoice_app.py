@@ -10,7 +10,7 @@ st.set_page_config(
     page_title="Invoice Dashboard",
     page_icon="💰",
     layout="wide",
-    initial_sidebar_state="auto",
+    #initial_sidebar_state="auto",
 )
 
 ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
