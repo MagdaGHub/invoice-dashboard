@@ -2633,7 +2633,7 @@ def render_vendor_admin_tab() -> None:
                     refresh_data()
 
 def render_header_menu() -> None:
-    top1, top2, top3 = st.columns([5.5, 1.2, 1.2])
+    top1, top2, top3 = st.columns([6, 0.6, 0.8])
 
     with top1:
         st.title("📊 Invoice DB – Transactions & Reports")
