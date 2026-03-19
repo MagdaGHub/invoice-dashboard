@@ -2659,43 +2659,33 @@ def render_vendor_admin_tab() -> None:
 # ============================================================
 def main() -> None:
     init_session_state()
-
-    top1, top2 = st.columns([6, 1.3])
+    
+    top1, top2 = st.columns([6, 1.2])
     
     with top1:
         st.title("📊 Invoice DB – Transactions & Reports")
     
     with top2:
-        action_options = ["⚙️ Menu", "🔒 Log out"]
-        if st.session_state.is_admin:
-            action_options.insert(1, "💾 Backup Database")
+        with st.popover("⚙️ Menu", use_container_width=True):
+            if st.button("🔒 Log out", use_container_width=True, key="menu_logout_btn"):
+                st.session_state.authenticated = False
+                st.session_state.is_admin = False
+                st.rerun()
     
-        selected_action = st.selectbox(
-            "Actions",
-            action_options,
-            label_visibility="collapsed",
-            key="header_actions_menu",
-        )
-    
-        if selected_action == "Log out":
-            st.session_state.authenticated = False
-            st.session_state.is_admin = False
-            st.rerun()
-    
-        elif selected_action == "Backup Database":
-            db_file = Path(DB_PATH)
-            if db_file.exists():
-                with open(db_file, "rb") as f:
-                    st.download_button(
-                        "Download Backup",
-                        f,
-                        file_name="VendorInvoices_backup.sqlite",
-                        mime="application/x-sqlite3",
-                        use_container_width=True,
-                        key="download_backup_btn",
-                    )
-            else:
-                st.error("Database file not found.")
+            if st.session_state.is_admin:
+                db_file = Path(DB_PATH)
+                if db_file.exists():
+                    with open(db_file, "rb") as f:
+                        st.download_button(
+                            "💾 Backup Database",
+                            data=f,
+                            file_name="VendorInvoices_backup.sqlite",
+                            mime="application/x-sqlite3",
+                            use_container_width=True,
+                            key="menu_backup_btn",
+                        )
+                else:
+                    st.error("Database file not found.")
             
     projects, vendors, categories, phases, line_items = load_lookups()
 
