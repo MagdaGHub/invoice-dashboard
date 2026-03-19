@@ -1318,7 +1318,6 @@ def render_new_transaction_tab(
         st.warning("Missing lookup data. Check your reference tables.")
         return
 
-    with st.form("new_transaction_form", clear_on_submit=True):
         c1, c2, c3 = st.columns(3)
                 
         with c1:
