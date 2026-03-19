@@ -2639,8 +2639,10 @@ def render_header_menu() -> None:
         st.title("📊 Invoice DB – Transactions & Reports")
 
     with top2:
-        role_label = "Admin" if st.session_state.is_admin else "Viewer"
-        st.caption(f"Mode: {role_label}")
+        if st.session_state.is_admin:
+            st.markdown("**🛠 Admin**")
+        else:
+            st.markdown("**👁 Viewer**")
 
     with top3:
         with st.popover("⚙️ Menu", use_container_width=True):
