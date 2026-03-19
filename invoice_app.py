@@ -196,28 +196,6 @@ if not st.session_state.authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# ADMIN ACCESS AFTER LOGIN
-with st.expander("Admin Access", expanded=False):
-    admin_pwd = st.text_input(
-        "Admin password",
-        type="password",
-        placeholder="Enter admin password",
-        key="admin_pwd_main"
-    )
-
-    if not st.session_state.is_admin:
-        if st.button("Unlock admin", use_container_width=False, key="unlock_admin_btn"):
-            if admin_pwd == ADMIN_PASSWORD:
-                st.session_state.is_admin = True
-                st.rerun()
-            else:
-                st.error("Wrong admin password")
-    else:
-        st.success("Admin mode is enabled.")
-        if st.button("Lock admin", use_container_width=False, key="lock_admin_btn"):
-            st.session_state.is_admin = False
-            st.rerun()
-
 READ_ONLY = not st.session_state.is_admin
 
 # ============================================================
@@ -2654,25 +2632,43 @@ def render_vendor_admin_tab() -> None:
                     st.success(f"Deleted vendor: {delete_vendor_name}")
                     refresh_data()
 
-# ============================================================
-# MAIN APP
-# ============================================================
-def main() -> None:
-    init_session_state()
-    
-    top1, top2 = st.columns([6, 1.2])
-    
+def render_header_menu() -> None:
+    top1, top2, top3 = st.columns([5.5, 1.2, 1.2])
+
     with top1:
         st.title("📊 Invoice DB – Transactions & Reports")
-    
+
     with top2:
+        role_label = "Admin" if st.session_state.is_admin else "Viewer"
+        st.caption(f"Mode: {role_label}")
+
+    with top3:
         with st.popover("⚙️ Menu", use_container_width=True):
-            if st.button("🔒 Log out", use_container_width=True, key="menu_logout_btn"):
-                st.session_state.authenticated = False
-                st.session_state.is_admin = False
-                st.rerun()
-    
-            if st.session_state.is_admin:
+            if not st.session_state.is_admin:
+                st.markdown("**Admin Access**")
+                admin_pwd_menu = st.text_input(
+                    "Admin password",
+                    type="password",
+                    placeholder="Enter admin password",
+                    label_visibility="collapsed",
+                    key="admin_pwd_menu",
+                )
+
+                if st.button("Unlock Admin", use_container_width=True, key="unlock_admin_menu_btn"):
+                    if admin_pwd_menu == ADMIN_PASSWORD:
+                        st.session_state.is_admin = True
+                        st.success("Admin mode enabled.")
+                        st.rerun()
+                    else:
+                        st.error("Wrong admin password")
+
+            else:
+                st.success("Admin mode enabled")
+
+                if st.button("Lock Admin", use_container_width=True, key="lock_admin_menu_btn"):
+                    st.session_state.is_admin = False
+                    st.rerun()
+
                 db_file = Path(DB_PATH)
                 if db_file.exists():
                     with open(db_file, "rb") as f:
@@ -2686,6 +2682,18 @@ def main() -> None:
                         )
                 else:
                     st.error("Database file not found.")
+
+            if st.button("🔒 Log out", use_container_width=True, key="menu_logout_btn"):
+                st.session_state.authenticated = False
+                st.session_state.is_admin = False
+                st.rerun()
+
+# ============================================================
+# MAIN APP
+# ============================================================
+def main() -> None:
+    init_session_state()
+    render_header_menu()
             
     projects, vendors, categories, phases, line_items = load_lookups()
 
