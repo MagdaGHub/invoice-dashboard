@@ -1486,69 +1486,6 @@ def render_new_transaction_tab(
 
 def build_transactions_display_with_subtotals(fdf: pd.DataFrame) -> pd.DataFrame:
     if fdf.empty:
-        return fdf.copy()
-
-    work = fdf.copy()
-    work["txn_date_sort"] = pd.to_datetime(work["txn_date"], errors="coerce")
-
-    work = work.sort_values(
-        by=["category_sort", "phase_sort", "line_item_sort", "txn_date_sort", "transaction_id"],
-        ascending=[True, True, True, True, True],
-        na_position="last",
-    )
-
-    rows = []
-
-    for category, cat_df in work.groupby("category", sort=False):
-        cat_total = float(cat_df["amount"].fillna(0).sum())
-
-        rows.append({
-            "transaction_id": None,
-            "project_name": "",
-            "category": f"▶ {category}",
-            "phase": "",
-            "line_item": "",
-            "vendor_name": "",
-            "txn_date": "",
-            "receipt_number": "",
-            "amount": cat_total,
-            "notes": "Category total",
-        })
-
-        for phase, phase_df in cat_df.groupby("phase", sort=False):
-            phase_total = float(phase_df["amount"].fillna(0).sum())
-
-            rows.append({
-                "transaction_id": None,
-                "project_name": "",
-                "category": "",
-                "phase": f"• {phase}",
-                "line_item": "",
-                "vendor_name": "",
-                "txn_date": "",
-                "receipt_number": "",
-                "amount": phase_total,
-                "notes": "Phase total",
-            })
-
-            for _, r in phase_df.iterrows():
-                rows.append({
-                    "transaction_id": r["transaction_id"],
-                    "project_name": r["project_name"],
-                    "category": "",
-                    "phase": "",
-                    "line_item": r["line_item"],
-                    "vendor_name": r["vendor_name"],
-                    "txn_date": r["txn_date"],
-                    "receipt_number": r["receipt_number"],
-                    "amount": r["amount"],
-                    "notes": r["notes"],
-                })
-
-    return pd.DataFrame(rows)
-
-def build_transactions_display_with_subtotals(fdf: pd.DataFrame) -> pd.DataFrame:
-    if fdf.empty:
         return pd.DataFrame()
 
     work = fdf.copy()
@@ -2729,9 +2666,9 @@ def main() -> None:
         st.title("📊 Invoice DB – Transactions & Reports")
     
     with top2:
-        action_options = ["Menu", "Log out"]
+        action_options = ["⚙️ Menu", "🔒 Log out"]
         if st.session_state.is_admin:
-            action_options.insert(1, "Backup Database")
+            action_options.insert(1, "💾 Backup Database")
     
         selected_action = st.selectbox(
             "Actions",
