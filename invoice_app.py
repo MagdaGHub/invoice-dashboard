@@ -6,6 +6,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 from io import BytesIO
+import zipfile
 
 st.set_page_config(
     page_title="Invoice Dashboard",
@@ -294,14 +295,18 @@ def export_table_df(table_name: str) -> pd.DataFrame:
         raise ValueError(f"Export not allowed for table: {table_name}")
     return load_df(f"SELECT * FROM {table_name}")
 
+def build_csv_export(table_name: str) -> bytes:
+    df = export_table_df(table_name)
+    return df.to_csv(index=False).encode("utf-8")
 
-def build_excel_export() -> bytes:
+def build_numbers_zip_export() -> bytes:
     output = BytesIO()
 
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zf:
         for table_name in EXPORT_TABLES:
             df = export_table_df(table_name)
-            df.to_excel(writer, sheet_name=table_name[:31], index=False)
+            csv_bytes = df.to_csv(index=False).encode("utf-8")
+            zf.writestr(f"{table_name}.csv", csv_bytes)
 
     output.seek(0)
     return output.getvalue()
@@ -2755,18 +2760,12 @@ def render_header_menu() -> None:
 
                 st.markdown("**Export data**")
 
-                try:
-                    excel_data = build_excel_export()
-                    st.download_button(
-                        "📦 Export all tables (Excel)",
-                        data=excel_data,
-                        file_name=f"invoice_dashboard_export_{datetime.now():%Y%m%d_%H%M%S}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        use_container_width=True,
-                        key="menu_export_excel_btn",
-                    )
-                except Exception as e:
-                    st.error(f"Excel export failed: {e}")
+                st.download_button(
+                    "Download all tables for Numbers",
+                    data=build_numbers_zip_export(),
+                    file_name="invoice_dashboard_tables_csv.zip",
+                    mime="application/zip",
+                )
 
                 export_table = st.selectbox(
                     "Export single table as CSV",
