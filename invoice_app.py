@@ -1,4 +1,5 @@
-import sqlite3
+#import sqlite3
+import psycopg2
 from contextlib import closing
 from datetime import date, datetime
 from pathlib import Path
@@ -232,30 +233,26 @@ def init_session_state() -> None:
 # ============================================================
 # DB HELPERS
 # ============================================================
-def get_connection() -> sqlite3.Connection:
-    if READ_ONLY:
-        con = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
-    else:
-        con = sqlite3.connect(DB_PATH)
-    con.row_factory = sqlite3.Row
-    con.execute("PRAGMA foreign_keys = ON;")
-    return con
+DATABASE_URL = st.secrets["DATABASE_URL"]  # stored in Streamlit secrets
+def get_connection():
+    return psycopg2.connect(DATABASE_URL)
 
 def load_df(sql: str, params: tuple = ()) -> pd.DataFrame:
     with closing(get_connection()) as con:
-        return pd.read_sql_query(sql, con, params=params)
-
+        return pd.read_sql(sql, con, params=params)
 
 def exec_sql(sql: str, params: tuple = ()) -> bool:
     try:
         with closing(get_connection()) as con:
-            con.execute(sql, params)
+            with con.cursor() as cur:
+                cur.execute(sql, params)
             con.commit()
         return True
-    except sqlite3.IntegrityError as e:
+
+    except psycopg2.IntegrityError as e:
         msg = str(e)
 
-        if "UNIQUE constraint failed" in msg and "transactions." in msg:
+        if "duplicate key value" in msg:
             st.warning(
                 "This transaction already exists and was not saved.\n\n"
                 "It looks like you may have clicked **Save Transaction** more than once."
@@ -264,10 +261,10 @@ def exec_sql(sql: str, params: tuple = ()) -> bool:
             st.error(f"Database integrity error: {msg}")
 
         return False
+
     except Exception as e:
         st.error(f"Database error: {e}")
         return False
-
 
 def refresh_data() -> None:
     st.cache_data.clear()
@@ -457,7 +454,7 @@ def load_project_summary(project_id: str) -> pd.DataFrame:
             FROM transactions
             GROUP BY project_id
         ) a ON p.project_id = a.project_id
-        WHERE p.project_id = ?
+        WHERE p.project_id = %S
         """,
         (project_id,),
     )
@@ -485,7 +482,7 @@ def load_project_transactions(project_id: str) -> pd.DataFrame:
             ON ph.build_category_id = bc.build_category_id
         LEFT JOIN line_item li
             ON t.line_item_id = li.line_item_id
-        WHERE t.project_id = ?
+        WHERE t.project_id = %s
         ORDER BY t.txn_date
         """,
         (project_id,),
@@ -513,7 +510,7 @@ def load_phase_budget_vs_actual(project_id: str) -> pd.DataFrame:
             GROUP BY li.phase_id, plb.project_id
         ) pb
             ON ph.phase_id = pb.phase_id
-           AND pb.project_id = ?
+           AND pb.project_id = %s
         LEFT JOIN (
             SELECT
                 phase_id,
@@ -523,7 +520,7 @@ def load_phase_budget_vs_actual(project_id: str) -> pd.DataFrame:
             GROUP BY phase_id, project_id
         ) ac
             ON ph.phase_id = ac.phase_id
-           AND ac.project_id = ?
+           AND ac.project_id = %s
         ORDER BY ph.sort_order
         """,
         (project_id, project_id),
@@ -556,7 +553,7 @@ def load_line_item_variance_for_phase(
             GROUP BY line_item_id, project_id
         ) pb
             ON li.line_item_id = pb.line_item_id
-           AND pb.project_id = ?
+           AND pb.project_id = %s
         LEFT JOIN (
             SELECT
                 line_item_id,
@@ -566,8 +563,8 @@ def load_line_item_variance_for_phase(
             GROUP BY line_item_id, project_id
         ) ac
             ON li.line_item_id = ac.line_item_id
-           AND ac.project_id = ?
-        WHERE ph.name = ?
+           AND ac.project_id = %s
+        WHERE ph.name = %s
         ORDER BY li.sort_order, li.name
         """,
         (project_id, project_id, phase_name),
@@ -577,13 +574,13 @@ def load_project_actual_cost_curve(project_id: str) -> pd.DataFrame:
     return load_df(
         """
         SELECT
-            DATE(txn_date) AS txn_day,
+            CAST(txn_date AS DATE) AS txn_day,
             SUM(amount) AS daily_actual
         FROM transactions
-        WHERE project_id = ?
+        WHERE project_id = %s
           AND txn_date IS NOT NULL
-        GROUP BY DATE(txn_date)
-        ORDER BY DATE(txn_date);
+        GROUP BY CAST(txn_date AS DATE)
+        ORDER BY CAST(txn_date AS DATE);
         """,
         (project_id,),
     )
@@ -592,13 +589,13 @@ def load_project_daily_spend(project_id: str) -> pd.DataFrame:
     return load_df(
         """
         SELECT
-            DATE(txn_date) AS txn_day,
+            CAST(txn_date AS DATE) AS txn_day,
             SUM(amount) AS daily_spend
         FROM transactions
-        WHERE project_id = ?
+        WHERE project_id = %s
           AND txn_date IS NOT NULL
-        GROUP BY DATE(txn_date)
-        ORDER BY DATE(txn_date)
+        GROUP BY CAST(txn_date AS DATE)
+        ORDER BY CAST(txn_date AS DATE)
         """,
         (project_id,),
     )
@@ -607,13 +604,13 @@ def load_project_budget_burndown(project_id: str) -> pd.DataFrame:
     return load_df(
         """
         SELECT
-            DATE(txn_date) AS txn_date,
+            CAST(txn_date AS DATE) AS txn_date,
             SUM(amount) AS daily_spend
         FROM transactions
-        WHERE project_id = ?
+        WHERE project_id = %s
           AND txn_date IS NOT NULL
-        GROUP BY DATE(txn_date)
-        ORDER BY DATE(txn_date)
+        GROUP BY CAST(txn_date AS DATE)
+        ORDER BY CAST(txn_date AS DATE)
         """,
         (project_id,),
     )
@@ -623,7 +620,7 @@ def load_project_total_budget(project_id: str) -> float:
         """
         SELECT COALESCE(SUM(planned_amount), 0) AS total_budget
         FROM project_line_item_budget
-        WHERE project_id = ?;
+        WHERE project_id = %s;
         """,
         (project_id,),
     )
@@ -678,7 +675,7 @@ def load_project_category_budget_vs_actual(project_id: str) -> pd.DataFrame:
                 ON ph.phase_id = t.phase_id
             JOIN build_category bc
                 ON bc.build_category_id = ph.build_category_id
-            WHERE t.project_id = ?
+            WHERE t.project_id = %s
             GROUP BY
                 t.project_id,
                 bc.build_category_id,
@@ -699,7 +696,7 @@ def load_project_category_budget_vs_actual(project_id: str) -> pd.DataFrame:
                 ON ph.phase_id = li.phase_id
             JOIN build_category bc
                 ON bc.build_category_id = ph.build_category_id
-            WHERE plb.project_id = ?
+            WHERE plb.project_id = %s
             GROUP BY
                 plb.project_id,
                 bc.build_category_id,
@@ -757,7 +754,7 @@ def load_project_phase_budget_vs_actual(project_id: str) -> pd.DataFrame:
                 ON ph.phase_id = t.phase_id
             JOIN build_category bc
                 ON bc.build_category_id = ph.build_category_id
-            WHERE t.project_id = ?
+            WHERE t.project_id = %s
             GROUP BY
                 t.project_id,
                 ph.phase_id,
@@ -782,7 +779,7 @@ def load_project_phase_budget_vs_actual(project_id: str) -> pd.DataFrame:
                 ON ph.phase_id = li.phase_id
             JOIN build_category bc
                 ON bc.build_category_id = ph.build_category_id
-            WHERE plb.project_id = ?
+            WHERE plb.project_id = %s
             GROUP BY
                 plb.project_id,
                 ph.phase_id,
@@ -846,7 +843,7 @@ def load_project_line_item_budget_vs_actual(project_id: str) -> pd.DataFrame:
                 ON ph.phase_id = li.phase_id
             JOIN build_category bc
                 ON bc.build_category_id = ph.build_category_id
-            WHERE t.project_id = ?
+            WHERE t.project_id = %s
             GROUP BY
                 t.project_id,
                 li.line_item_id,
@@ -875,7 +872,7 @@ def load_project_line_item_budget_vs_actual(project_id: str) -> pd.DataFrame:
                 ON ph.phase_id = li.phase_id
             JOIN build_category bc
                 ON bc.build_category_id = ph.build_category_id
-            WHERE plb.project_id = ?
+            WHERE plb.project_id = %s
             GROUP BY
                 plb.project_id,
                 li.line_item_id,
@@ -1429,7 +1426,7 @@ def render_new_transaction_tab(
             INSERT INTO transactions (
                 project_id, vendor_id, phase_id, line_item_id,
                 txn_date, receipt_number, amount, notes, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 project_id,
@@ -1782,8 +1779,8 @@ def render_transactions_tab(
                 saved = exec_sql(
                     """
                     UPDATE transactions
-                    SET txn_date = ?, receipt_number = ?, amount = ?, notes = ?
-                    WHERE transaction_id = ?;
+                    SET txn_date = %s, receipt_number = %s, amount = %s, notes = %s
+                    WHERE transaction_id = %s;
                     """,
                     (
                         str(row["txn_date"]) if pd.notnull(row["txn_date"]) else None,
@@ -1820,7 +1817,7 @@ def render_transactions_tab(
                 """
                 SELECT transaction_id, project_id, vendor_id, phase_id, line_item_id
                 FROM transactions
-                WHERE transaction_id = ?
+                WHERE transaction_id = %s
                 """,
                 (int(edit_id),),
             )
@@ -1924,8 +1921,8 @@ def render_transactions_tab(
                 saved = exec_sql(
                     """
                     UPDATE transactions
-                    SET project_id = ?, vendor_id = ?, phase_id = ?, line_item_id = ?
-                    WHERE transaction_id = ?
+                    SET project_id = %s, vendor_id = %s, phase_id = %s, line_item_id = %s
+                    WHERE transaction_id = %s
                     """,
                     (
                         st.session_state.edit_project,
@@ -1971,7 +1968,7 @@ def render_transactions_tab(
                 LEFT JOIN projects p ON p.project_id = t.project_id
                 LEFT JOIN vendors v ON v.vendor_id = t.vendor_id
                 LEFT JOIN line_item li ON li.line_item_id = t.line_item_id
-                WHERE t.transaction_id = ?
+                WHERE t.transaction_id = %s
                 """,
                 (int(delete_id),),
             )
@@ -1996,7 +1993,7 @@ def render_transactions_tab(
             txn_id = int(delete_id)
     
             deleted = exec_sql(
-                "DELETE FROM transactions WHERE transaction_id = ?;",
+                "DELETE FROM transactions WHERE transaction_id = %s;",
                 (txn_id,),
             )
     
@@ -2107,7 +2104,7 @@ def render_reports_tab() -> None:
         """
         SELECT project_id, project_name
         FROM projects
-        WHERE project_name = ?;
+        WHERE project_name = %s;
         """,
         (rpt_project,),
     )
@@ -2551,14 +2548,14 @@ def render_vendor_admin_tab() -> None:
                 st.error("Vendor name cannot be blank.")
             else:
                 exists = load_df(
-                    "SELECT vendor_id FROM vendors WHERE LOWER(vendor_name) = LOWER(?);",
+                    "SELECT vendor_id FROM vendors WHERE LOWER(vendor_name) = LOWER(%s);",
                     (vendor_name,),
                 )
                 if not exists.empty:
                     st.warning("Vendor already exists.")
                 else:
                     saved = exec_sql(
-                        "INSERT INTO vendors (vendor_name) VALUES (?);",
+                        "INSERT INTO vendors (vendor_name) VALUES (%s);",
                         (vendor_name,),
                     )
                     if saved:
@@ -2598,8 +2595,8 @@ def render_vendor_admin_tab() -> None:
                         """
                         SELECT vendor_id
                         FROM vendors
-                        WHERE LOWER(vendor_name) = LOWER(?)
-                          AND vendor_id <> ?;
+                        WHERE LOWER(vendor_name) = LOWER(%s)
+                          AND vendor_id <> %s;
                         """,
                         (vendor_name, int(edit_vendor_id)),
                     )
@@ -2607,7 +2604,7 @@ def render_vendor_admin_tab() -> None:
                         st.warning("Another vendor with this name already exists.")
                     else:
                         saved = exec_sql(
-                            "UPDATE vendors SET vendor_name = ? WHERE vendor_id = ?;",
+                            "UPDATE vendors SET vendor_name = %s WHERE vendor_id = %s;",
                             (vendor_name, int(edit_vendor_id)),
                         )
                         if saved:
@@ -2636,7 +2633,7 @@ def render_vendor_admin_tab() -> None:
                 """
                 SELECT COUNT(*) AS cnt
                 FROM transactions
-                WHERE vendor_id = ?;
+                WHERE vendor_id = %s;
                 """,
                 (int(delete_vendor_id),),
             )
@@ -2656,7 +2653,7 @@ def render_vendor_admin_tab() -> None:
                 disabled=usage_count > 0,
             ):
                 deleted = exec_sql(
-                    "DELETE FROM vendors WHERE vendor_id = ?;",
+                    "DELETE FROM vendors WHERE vendor_id = %s;",
                     (int(delete_vendor_id),),
                 )
                 if deleted:
