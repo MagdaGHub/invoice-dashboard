@@ -1759,6 +1759,12 @@ def render_transactions_tab(
             "notes",
         ]
     ].copy()
+    
+    grid["txn_date"] = pd.to_datetime(grid["txn_date"], errors="coerce").dt.strftime("%Y-%m-%d")
+    grid["txn_date"] = grid["txn_date"].fillna("")
+    grid["receipt_number"] = grid["receipt_number"].fillna("")
+    grid["notes"] = grid["notes"].fillna("")
+    grid["amount"] = pd.to_numeric(grid["amount"], errors="coerce")
 
     edited = st.data_editor(
         grid,
