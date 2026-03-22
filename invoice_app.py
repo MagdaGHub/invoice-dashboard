@@ -1,4 +1,3 @@
-#import sqlite3
 import psycopg2
 from contextlib import closing
 from datetime import date, datetime
@@ -6,6 +5,7 @@ from pathlib import Path
 import altair as alt
 import pandas as pd
 import streamlit as st
+from io import BytesIO
 
 st.set_page_config(
     page_title="Invoice Dashboard",
@@ -202,9 +202,6 @@ READ_ONLY = not st.session_state.is_admin
 # ============================================================
 # CONFIG
 # ============================================================
-
-DB_PATH = "VendorInvoices.sqlite"
-
 pd.options.display.float_format = "{:,.2f}".format
 
 SESSION_DEFAULTS = {
@@ -233,7 +230,10 @@ def init_session_state() -> None:
 # ============================================================
 # DB HELPERS
 # ============================================================
+import psycopg2
+
 DATABASE_URL = st.secrets["DATABASE_URL"]  # stored in Streamlit secrets
+
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
 
@@ -242,6 +242,7 @@ def load_df(sql: str, params: tuple = ()) -> pd.DataFrame:
         return pd.read_sql(sql, con, params=params)
 
 def exec_sql(sql: str, params: tuple = ()) -> bool:
+    con = None
     try:
         with closing(get_connection()) as con:
             with con.cursor() as cur:
@@ -250,6 +251,9 @@ def exec_sql(sql: str, params: tuple = ()) -> bool:
         return True
 
     except psycopg2.IntegrityError as e:
+        if con is not None:
+            con.rollback()
+
         msg = str(e)
 
         if "duplicate key value" in msg:
@@ -263,6 +267,8 @@ def exec_sql(sql: str, params: tuple = ()) -> bool:
         return False
 
     except Exception as e:
+        if con is not None:
+            con.rollback()
         st.error(f"Database error: {e}")
         return False
 
@@ -270,6 +276,39 @@ def refresh_data() -> None:
     st.cache_data.clear()
     st.rerun()
 
+# ============================================================
+# EXPORT HELPERS
+# ============================================================
+EXPORT_TABLES = [
+    "build_category",
+    "projects",
+    "vendors",
+    "phase",
+    "line_item",
+    "project_line_item_budget",
+    "transactions",
+]
+
+def export_table_df(table_name: str) -> pd.DataFrame:
+    if table_name not in EXPORT_TABLES:
+        raise ValueError(f"Export not allowed for table: {table_name}")
+    return load_df(f"SELECT * FROM {table_name}")
+
+
+def build_excel_export() -> bytes:
+    output = BytesIO()
+
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        for table_name in EXPORT_TABLES:
+            df = export_table_df(table_name)
+            df.to_excel(writer, sheet_name=table_name[:31], index=False)
+
+    output.seek(0)
+    return output.getvalue()
+
+def build_csv_export(table_name: str) -> bytes:
+    df = export_table_df(table_name)
+    return df.to_csv(index=False).encode("utf-8")
 
 # ============================================================
 # GENERIC HELPERS
@@ -454,7 +493,7 @@ def load_project_summary(project_id: str) -> pd.DataFrame:
             FROM transactions
             GROUP BY project_id
         ) a ON p.project_id = a.project_id
-        WHERE p.project_id = %S
+        WHERE p.project_id = %s
         """,
         (project_id,),
     )
@@ -2684,7 +2723,11 @@ def render_header_menu() -> None:
                     key="admin_pwd_menu",
                 )
 
-                if st.button("Unlock Admin", use_container_width=True, key="unlock_admin_menu_btn"):
+                if st.button(
+                    "Unlock Admin",
+                    use_container_width=True,
+                    key="unlock_admin_menu_btn",
+                ):
                     if admin_pwd_menu == ADMIN_PASSWORD:
                         st.session_state.is_admin = True
                         st.success("Admin mode enabled.")
@@ -2694,30 +2737,55 @@ def render_header_menu() -> None:
 
             else:
                 st.success("Admin mode enabled")
+                st.caption("Database is hosted in Neon.")
 
-                if st.button("Lock Admin", use_container_width=True, key="lock_admin_menu_btn"):
+                if st.button(
+                    "Lock Admin",
+                    use_container_width=True,
+                    key="lock_admin_menu_btn",
+                ):
                     st.session_state.is_admin = False
                     st.rerun()
 
-                db_file = Path(DB_PATH)
-                if db_file.exists():
-                    with open(db_file, "rb") as f:
-                        st.download_button(
-                            "💾 Backup Database",
-                            data=f,
-                            file_name="VendorInvoices_backup.sqlite",
-                            mime="application/x-sqlite3",
-                            use_container_width=True,
-                            key="menu_backup_btn",
-                        )
-                else:
-                    st.error("Database file not found.")
+                st.markdown("**Export data**")
+
+                try:
+                    excel_data = build_excel_export()
+                    st.download_button(
+                        "📦 Export all tables (Excel)",
+                        data=excel_data,
+                        file_name=f"invoice_dashboard_export_{datetime.now():%Y%m%d_%H%M%S}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True,
+                        key="menu_export_excel_btn",
+                    )
+                except Exception as e:
+                    st.error(f"Excel export failed: {e}")
+
+                export_table = st.selectbox(
+                    "Export single table as CSV",
+                    EXPORT_TABLES,
+                    key="menu_export_table_select",
+                )
+
+                try:
+                    csv_data = build_csv_export(export_table)
+                    st.download_button(
+                        f"⬇️ Download {export_table}.csv",
+                        data=csv_data,
+                        file_name=f"{export_table}_{datetime.now():%Y%m%d_%H%M%S}.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                        key="menu_export_csv_btn",
+                    )
+                except Exception as e:
+                    st.error(f"CSV export failed: {e}")
 
             if st.button("🔒 Log out", use_container_width=True, key="menu_logout_btn"):
                 st.session_state.authenticated = False
                 st.session_state.is_admin = False
                 st.rerun()
-
+                
 # ============================================================
 # MAIN APP
 # ============================================================
