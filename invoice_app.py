@@ -235,26 +235,28 @@ import psycopg2
 
 DATABASE_URL = st.secrets["DATABASE_URL"]  # stored in Streamlit secrets
 
+@st.cache_resource
 def get_connection():
-    return psycopg2.connect(DATABASE_URL)
-
+    return psycopg2.connect(
+        st.secrets["DATABASE_URL"],
+        connect_timeout=5,
+        sslmode="require"
+    )
+    
 def load_df(sql: str, params: tuple = ()) -> pd.DataFrame:
-    with closing(get_connection()) as con:
-        return pd.read_sql(sql, con, params=params)
+    con = get_connection()
+    return pd.read_sql(sql, con, params=params)
 
 def exec_sql(sql: str, params: tuple = ()) -> bool:
-    con = None
+    con = get_connection()
     try:
-        with closing(get_connection()) as con:
-            with con.cursor() as cur:
-                cur.execute(sql, params)
-            con.commit()
+        with con.curson() as cur:
+             cur.execute(sql, params)
+        con.commit()
         return True
 
     except psycopg2.IntegrityError as e:
-        if con is not None:
-            con.rollback()
-
+        con.rollback()
         msg = str(e)
 
         if "duplicate key value" in msg:
@@ -268,8 +270,7 @@ def exec_sql(sql: str, params: tuple = ()) -> bool:
         return False
 
     except Exception as e:
-        if con is not None:
-            con.rollback()
+        con.rollback()
         st.error(f"Database error: {e}")
         return False
 
@@ -425,7 +426,7 @@ def load_lookups():
     return projects, vendors, categories, phases, line_items
 
 
-@st.cache_data
+@st.cache_data(ttl=60)
 def load_transactions_joined() -> pd.DataFrame:
     return load_df(
         """
@@ -472,6 +473,7 @@ def get_line_item_options(line_items: pd.DataFrame, phase_id: int) -> pd.DataFra
 # ============================================================
 # QUERY HELPERS
 # ============================================================
+@st.cache_data(ttl=60)
 def load_project_summary(project_id: str) -> pd.DataFrame:
     return load_df(
         """
@@ -532,7 +534,7 @@ def load_project_transactions(project_id: str) -> pd.DataFrame:
         (project_id,),
     )
 
-
+@st.cache_data(ttl=60)
 def load_phase_budget_vs_actual(project_id: str) -> pd.DataFrame:
     return load_df(
         """
