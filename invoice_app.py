@@ -1760,7 +1760,7 @@ def render_transactions_tab(
         ]
     ].copy()
     
-    grid["txn_date"] = pd.to_datetime(grid["txn_date"], errors="coerce").dt.strftime("%Y-%m-%d")
+    grid["txn_date"] = pd.to_datetime(grid["txn_date"], errors="coerce")
     grid["txn_date"] = grid["txn_date"].fillna("")
     grid["receipt_number"] = grid["receipt_number"].fillna("")
     grid["notes"] = grid["notes"].fillna("")
@@ -1785,7 +1785,7 @@ def render_transactions_tab(
             "phase": st.column_config.TextColumn("Phase", width="medium"),
             "line_item": st.column_config.TextColumn("Line Item", width="medium"),
             "vendor_name": st.column_config.TextColumn("Vendor", width="medium"),
-            "txn_date": st.column_config.TextColumn("Date", width="small"),
+            "txn_date": st.column_config.DateColumn("Date", width="small"),
             "receipt_number": st.column_config.TextColumn("Receipt", width="small"),
             "amount": st.column_config.NumberColumn(
                 "Amount ($)", format="$%,.2f", width="small"
