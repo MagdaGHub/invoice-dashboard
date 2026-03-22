@@ -250,7 +250,7 @@ def load_df(sql: str, params: tuple = ()) -> pd.DataFrame:
 def exec_sql(sql: str, params: tuple = ()) -> bool:
     con = get_connection()
     try:
-        with con.curson() as cur:
+        with con.cursor() as cur:
              cur.execute(sql, params)
         con.commit()
         return True
