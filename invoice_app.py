@@ -817,7 +817,37 @@ def load_project_category_budget_vs_actual(project_id: str) -> pd.DataFrame:
         """,
         (project_id, project_id),
     )
-
+@st.cache_data(ttl=60)
+def load_all_projects_phase_actuals() -> pd.DataFrame:
+    return load_df(
+        """
+        SELECT
+            p.project_name,
+            bc.name AS category,
+            bc.sort_order AS category_sort,
+            ph.name AS phase,
+            ph.sort_order AS phase_sort,
+            SUM(t.amount) AS actual_amount
+        FROM transactions t
+        JOIN projects p
+            ON p.project_id = t.project_id
+        JOIN phase ph
+            ON ph.phase_id = t.phase_id
+        JOIN build_category bc
+            ON bc.build_category_id = ph.build_category_id
+        GROUP BY
+            p.project_name,
+            bc.name,
+            bc.sort_order,
+            ph.name,
+            ph.sort_order
+        ORDER BY
+            bc.sort_order,
+            ph.sort_order,
+            p.project_name;
+        """
+    )
+    
 def load_project_phase_budget_vs_actual(project_id: str) -> pd.DataFrame:
     return load_df(
         """
@@ -2176,6 +2206,101 @@ def render_reports_tab() -> None:
         """
     )["project_name"].tolist()
 
+    st.markdown("## Houses Costs Comparison per Construction Phase (Actual)")
+
+    all_phase_actuals = load_all_projects_phase_actuals
+
+    show_total = st.toggle("Show total per phase (all houses combined)", value=False)
+    
+    if show_total:
+        all_phase_actuals = (
+            all_phase_actuals
+            .groupby(
+                ["category", "phase", "category_sort", "phase_sort"],
+                as_index=False
+            )["actual_amount"]
+            .sum()
+        )
+        all_phase_actuals["project_name"] = "All Houses"
+
+    project_options = sorted(
+        all_phase_actuals["project_name"].dropna().unique().tolist()
+    )
+    
+    selected_projects = st.multiselect(
+        "Select houses to compare",
+        project_options,
+        default=project_options[:5] if len(project_options) > 5 else project_options,
+        key="phase_compare_projects",
+    )
+    
+    all_phase_actuals = all_phase_actuals[
+        all_phase_actuals["project_name"].isin(selected_projects)
+    ]
+
+    if all_phase_actuals.empty:
+        st.info("No data for selected houses.")
+        st.stop()
+    else:
+        all_phase_actuals["phase_label"] = (
+            all_phase_actuals["category"] + " • " + all_phase_actuals["phase"]
+        )
+
+        phase_order = (
+            all_phase_actuals
+            .sort_values(["category_sort", "phase_sort"])
+            ["phase_label"]
+            .drop_duplicates()
+            .tolist()
+        )
+
+        comparison_chart = (
+            alt.Chart(all_phase_actuals)
+            .mark_bar()
+            .encode(
+                x=alt.X(
+                    "phase_label:N",
+                    sort=phase_order,
+                    title="Construction Phase",
+                    axis=alt.Axis(labelAngle=-45),
+                ),
+                y=alt.Y(
+                    "actual_amount:Q",
+                    title="Actual Spend",
+                    axis=alt.Axis(format="$,.0f"),
+                ),
+                color=alt.Color(
+                    "project_name:N",
+                    title="House",
+                    legend=alt.Legend(orient="bottom"),
+                ),
+                xOffset="project_name:N",
+                tooltip=[
+                    alt.Tooltip("project_name:N", title="House"),
+                    alt.Tooltip("category:N", title="Category"),
+                    alt.Tooltip("phase:N", title="Phase"),
+                    alt.Tooltip("actual_amount:Q", title="Actual Spend", format="$,.2f"),
+                ],
+            )
+            .properties(height=430)
+        )
+
+        comparison_labels = (
+            alt.Chart(all_phase_actuals)
+            .mark_text(dy=-6, fontSize=10)
+            .encode(
+                x=alt.X("phase_label:N", sort=phase_order),
+                y=alt.Y("actual_amount:Q"),
+                xOffset="project_name:N",
+                text=alt.Text("actual_amount:Q", format="$,.0f"),
+                detail="project_name:N",
+            )
+        )
+
+        st.altair_chart(comparison_chart + comparison_labels, use_container_width=True)
+
+    st.divider()
+    
     all_project_names = sorted(set(project_names) | set(budget_project_names))
     rpt_project = (
         st.selectbox("Select project for reports", all_project_names)
