@@ -2290,7 +2290,7 @@ def render_reports_tab() -> None:
                         color=alt.Color(
                             "project_name:N",
                             title="House",
-                            legend=alt.Legend(orient="bottom"),
+                            legend=alt.Legend(orient="top", direction="horizontal"),
                         ),
                         xOffset="project_name:N",
                         tooltip=[
@@ -2305,7 +2305,8 @@ def render_reports_tab() -> None:
     
                 comparison_labels = (
                     alt.Chart(all_phase_actuals)
-                    .mark_text(dy=-6, fontSize=10)
+                    .transform_filter(alt.datum.actual_amount > 20000)
+                    .mark_text(dy=-5, fontSize=10)
                     .encode(
                         x=alt.X("phase_label:N", sort=phase_order),
                         y=alt.Y("actual_amount:Q"),
