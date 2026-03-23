@@ -7,6 +7,16 @@ import pandas as pd
 import streamlit as st
 from io import BytesIO
 import zipfile
+import logging
+
+# log file in same folder as this script
+LOG_FILE = Path(__file__).parent / "activity_log.txt"
+
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+)
 
 st.set_page_config(
     page_title="Invoice Dashboard",
@@ -241,7 +251,13 @@ def get_connection():
         #connect_timeout=5,
         sslmode="require"
     )
-    
+
+def log_activity(action, table, details=""):
+    try:
+        logging.info(f"{action} | {table} | {details}")
+    except Exception:
+        pass
+
 # Friendly error display
 def show_db_error(action="work with the database"):
     st.error(
@@ -252,11 +268,6 @@ def show_db_error(action="work with the database"):
         "If the problem continues, wait a few seconds and try again. "
         "The database connection may have been interrupted temporarily."
     )
-    
-#safe read
-# def load_df(sql: str, params: tuple = ()) -> pd.DataFrame:
-#    con = get_connection()
-#   return pd.read_sql(sql, con, params=params)
 
 def load_df(sql, params=None, action="load data"):
     try:
@@ -274,10 +285,6 @@ def load_df(sql, params=None, action="load data"):
     except Exception:
         show_db_error(action)
         st.stop()
-        
-from contextlib import closing
-import psycopg2
-import streamlit as st
 
 def exec_sql(sql, params=None, action="save data"):
     try:
@@ -1555,6 +1562,15 @@ def render_new_transaction_tab(
         st.session_state.saving_txn = False
 
         if saved:
+            log_activity(
+                "INSERT",
+                "transactions",
+                f"project={project_id}, vendor={vendor_id}, phase={phase_id}, "
+                f"line_item={line_item_id}, amount={float(amount):.2f}, "
+                f"txn_date={txn_date}, receipt={receipt_number.strip() or '—'}"
+            )
+
+            st.session_state["last_saved_txn"] = {
             st.session_state["last_saved_txn"] = {
                 "project_name": get_name_from_id(
                     projects, "project_id", "project_name", project_id
