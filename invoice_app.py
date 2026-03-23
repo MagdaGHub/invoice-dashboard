@@ -231,32 +231,71 @@ def init_session_state() -> None:
 # ============================================================
 # DB HELPERS
 # ============================================================
-import psycopg2
 
 DATABASE_URL = st.secrets["DATABASE_URL"]  # stored in Streamlit secrets
 
-@st.cache_resource
+#@st.cache_resource
 def get_connection():
     return psycopg2.connect(
         st.secrets["DATABASE_URL"],
-        connect_timeout=5,
+        #connect_timeout=5,
         sslmode="require"
     )
     
-def load_df(sql: str, params: tuple = ()) -> pd.DataFrame:
-    con = get_connection()
-    return pd.read_sql(sql, con, params=params)
+# Friendly error display
+def show_db_error(action="work with the database"):
+    st.error(
+        f"Something went wrong while trying to {action}. "
+        "Please refresh the page and try again."
+    )
+    st.info(
+        "If the problem continues, wait a few seconds and try again. "
+        "The database connection may have been interrupted temporarily."
+    )
+    
+#safe read
+# def load_df(sql: str, params: tuple = ()) -> pd.DataFrame:
+#    con = get_connection()
+#   return pd.read_sql(sql, con, params=params)
 
-def exec_sql(sql: str, params: tuple = ()) -> bool:
-    con = get_connection()
+def load_df(sql, params=None, action="load data"):
     try:
-        with con.cursor() as cur:
-             cur.execute(sql, params)
-        con.commit()
+        with closing(get_connection()) as con:
+            return pd.read_sql(sql, con, params=params)
+
+    except psycopg2.InterfaceError:
+        show_db_error(action)
+        st.stop()
+
+    except psycopg2.OperationalError:
+        st.warning("The database may still be waking up. Please try again in a few seconds.")
+        st.stop()
+
+    except Exception:
+        show_db_error(action)
+        st.stop()
+        
+from contextlib import closing
+import psycopg2
+import streamlit as st
+
+def exec_sql(sql, params=None, action="save data"):
+    try:
+        with closing(get_connection()) as con:
+            with con.cursor() as cur:
+                cur.execute(sql, params)
+            con.commit()
         return True
 
+    except psycopg2.InterfaceError:
+        st.warning("Connection was interrupted while saving. Please try again.")
+        return False
+
+    except psycopg2.OperationalError:
+        st.warning("The database is temporarily unavailable. Please wait a moment and try again.")
+        return False
+
     except psycopg2.IntegrityError as e:
-        con.rollback()
         msg = str(e)
 
         if "duplicate key value" in msg:
@@ -270,8 +309,7 @@ def exec_sql(sql: str, params: tuple = ()) -> bool:
         return False
 
     except Exception as e:
-        con.rollback()
-        st.error(f"Database error: {e}")
+        show_db_error(action)
         return False
 
 def refresh_data() -> None:
@@ -303,18 +341,15 @@ def build_csv_export(table_name: str) -> bytes:
 def build_numbers_zip_export() -> bytes:
     output = BytesIO()
 
-    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zf:
-        for table_name in EXPORT_TABLES:
-            df = export_table_df(table_name)
-            csv_bytes = df.to_csv(index=False).encode("utf-8")
-            zf.writestr(f"{table_name}.csv", csv_bytes)
+    with closing(get_connection()) as con:
+        with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zf:
+            for table_name in EXPORT_TABLES:
+                df = pd.read_sql(f"SELECT * FROM {table_name}", con)
+                csv_bytes = df.to_csv(index=False).encode("utf-8")
+                zf.writestr(f"{table_name}.csv", csv_bytes)
 
     output.seek(0)
     return output.getvalue()
-
-def build_csv_export(table_name: str) -> bytes:
-    df = export_table_df(table_name)
-    return df.to_csv(index=False).encode("utf-8")
 
 # ============================================================
 # GENERIC HELPERS
@@ -2849,4 +2884,9 @@ def main() -> None:
             render_reports_tab()
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        st.error("Something unexpected happened in the app.")
+        st.info("Please refresh the page and try again.")
+        st.stop()
