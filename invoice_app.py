@@ -2306,7 +2306,7 @@ def render_reports_tab() -> None:
                 comparison_labels = (
                     alt.Chart(all_phase_actuals)
                     .transform_filter(alt.datum.actual_amount > 20000)
-                    .mark_text(angle=270, dy=0, dx=1)
+                    .mark_text(angle=270, dy=0, dx=5)
                     .encode(
                         x=alt.X("phase_label:N", sort=phase_order),
                         y=alt.Y("actual_amount:Q"),
