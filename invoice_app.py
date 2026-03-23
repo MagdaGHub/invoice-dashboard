@@ -2280,7 +2280,7 @@ def render_reports_tab() -> None:
                             "phase_label:N",
                             sort=phase_order,
                             title="Construction Phase",
-                            axis=alt.Axis(labelAngle=-75),
+                            axis=alt.Axis(labelAngle=-90, labelLimit=220),
                         ),
                         y=alt.Y(
                             "actual_amount:Q",
