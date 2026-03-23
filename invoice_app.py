@@ -2210,11 +2210,6 @@ def render_reports_tab() -> None:
     
     try:
         all_phase_actuals = load_all_projects_phase_actuals()
-        
-        st.write(type(all_phase_actuals))
-        if all_phase_actuals is not None:
-            st.write(all_phase_actuals.columns.tolist())
-            st.write(all_phase_actuals.head())
             
         if all_phase_actuals is None or all_phase_actuals.empty:
             st.info("No actual transaction data found yet for project comparison.")
