@@ -254,7 +254,13 @@ def get_connection():
 
 def log_activity(action, table, details=""):
     try:
-        logging.info("%s | %s | %s", action, table, details)
+        exec_sql(
+            """
+            INSERT INTO activity_log (action, table_name, details)
+            VALUES (%s, %s, %s)
+            """,
+            (action, table, details),
+        )
     except Exception:
         pass
 
