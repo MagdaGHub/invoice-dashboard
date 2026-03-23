@@ -2271,7 +2271,12 @@ def render_reports_tab() -> None:
                         .drop_duplicates()
                         .tolist()
                     )
-    
+                
+                st.dataframe(
+                    all_phase_actuals.sort_values(["category_sort", "phase_sort"]),
+                    use_container_width=True,
+                    hide_index=True,
+                )
                 comparison_chart = (
                     alt.Chart(all_phase_actuals)
                     .mark_bar()
@@ -2306,7 +2311,7 @@ def render_reports_tab() -> None:
                 comparison_labels = (
                     alt.Chart(all_phase_actuals)
                     .transform_filter(alt.datum.actual_amount > 20000)
-                    .mark_text(angle=-90, dy=0, dx=5, fontSize=10)
+                    .mark_text(angle=270, dy=0, dx=5)
                     .encode(
                         x=alt.X("phase_label:N", sort=phase_order),
                         y=alt.Y("actual_amount:Q"),
