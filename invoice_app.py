@@ -2209,18 +2209,24 @@ def render_reports_tab() -> None:
     st.markdown("## Houses Costs Comparison per Construction Phase (Actual)")
 
     all_phase_actuals = load_all_projects_phase_actuals
-
+    
     show_total = st.toggle("Show total per phase (all houses combined)", value=False)
     
     if show_total:
+        group_cols = ["category", "phase"]
+    
+        # only include sort columns if they exist
+        if "category_sort" in all_phase_actuals.columns:
+            group_cols.append("category_sort")
+        if "phase_sort" in all_phase_actuals.columns:
+            group_cols.append("phase_sort")
+    
         all_phase_actuals = (
             all_phase_actuals
-            .groupby(
-                ["category", "phase", "category_sort", "phase_sort"],
-                as_index=False
-            )["actual_amount"]
+            .groupby(group_cols, as_index=False)["actual_amount"]
             .sum()
         )
+    
         all_phase_actuals["project_name"] = "All Houses"
 
     project_options = sorted(
@@ -2272,7 +2278,7 @@ def render_reports_tab() -> None:
                 color=alt.Color(
                     "project_name:N",
                     title="House",
-                    legend=alt.Legend(orient="bottom"),
+                    legend=None if show_total else alt.Legend(orient="bottom"),
                 ),
                 xOffset="project_name:N",
                 tooltip=[
