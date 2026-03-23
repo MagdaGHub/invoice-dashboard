@@ -254,7 +254,7 @@ def get_connection():
 
 def log_activity(action, table, details=""):
     try:
-        logging.info(f"{action} | {table} | {details}")
+        logging.info("%s | %s | %s", action, table, details)
     except Exception:
         pass
 
@@ -1928,6 +1928,13 @@ def render_transactions_tab(
                     ),
                 )
                 if saved:
+                    log_activity(
+                        "UPDATE",
+                        "transactions",
+                        f"id={tid}, txn_date={str(row['txn_date']) if pd.notnull(row['txn_date']) else 'None'}, "
+                        f"receipt={str(row['receipt_number']).strip() if pd.notnull(row['receipt_number']) else 'None'}, "
+                        f"amount={float(row['amount']) if pd.notnull(row['amount']) else 'None'}"
+                    )
                     success_count += 1
 
             if success_count:
@@ -2066,6 +2073,15 @@ def render_transactions_tab(
                 )
     
                 if saved:
+                    log_activity(
+                        "UPDATE",
+                        "transactions",
+                        f"id={int(st.session_state.edit_id)}, "
+                        f"project={st.session_state.edit_project}, "
+                        f"vendor={int(st.session_state.edit_vendor)}, "
+                        f"phase={int(st.session_state.edit_phase)}, "
+                        f"line_item={int(st.session_state.edit_line_item)}"
+                    )
                     st.success("Updated relational fields ✅")
                     refresh_data()
     
@@ -2130,8 +2146,13 @@ def render_transactions_tab(
             )
     
             if deleted:
+                log_activity(
+                    "DELETE",
+                    "transactions",
+                    f"id={txn_id}"
+                )
                 st.success(f"Transaction #{txn_id} deleted successfully ✅")
-                refresh_data()   
+                refresh_data()
 
 def render_reports_tab() -> None:
     st.subheader("Reports")
@@ -2856,6 +2877,11 @@ def render_vendor_admin_tab() -> None:
                             (vendor_name, int(edit_vendor_id)),
                         )
                         if saved:
+                            log_activity(
+                                "UPDATE",
+                                "vendors",
+                                f"id={int(edit_vendor_id)}, vendor_name={vendor_name}"
+                            )
                             st.success("Vendor updated ✅")
                             refresh_data()
 
@@ -2905,6 +2931,11 @@ def render_vendor_admin_tab() -> None:
                     (int(delete_vendor_id),),
                 )
                 if deleted:
+                    log_activity(
+                        "DELETE",
+                        "vendors",
+                        f"id={int(delete_vendor_id)}, vendor_name={delete_vendor_name}"
+                    )
                     st.success(f"Deleted vendor: {delete_vendor_name}")
                     refresh_data()
 
