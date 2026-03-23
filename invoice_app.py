@@ -2151,7 +2151,6 @@ def render_transactions_tab(
                 (txn_id,),
             )
     
-            if deleted:
             record_to_delete = load_df(
                 """
                 SELECT
