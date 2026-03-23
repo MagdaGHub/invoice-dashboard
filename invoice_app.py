@@ -2271,12 +2271,7 @@ def render_reports_tab() -> None:
                         .drop_duplicates()
                         .tolist()
                     )
-                
-                st.dataframe(
-                    all_phase_actuals.sort_values(["category_sort", "phase_sort"]),
-                    use_container_width=True,
-                    hide_index=True,
-                )
+
                 comparison_chart = (
                     alt.Chart(all_phase_actuals)
                     .mark_bar()
