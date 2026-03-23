@@ -2152,13 +2152,51 @@ def render_transactions_tab(
             )
     
             if deleted:
-                log_activity(
-                    "DELETE",
-                    "transactions",
-                    f"id={txn_id}"
+            record_to_delete = load_df(
+                """
+                SELECT
+                    t.transaction_id,
+                    t.project_id,
+                    t.vendor_id,
+                    t.phase_id,
+                    t.line_item_id,
+                    t.txn_date,
+                    t.amount,
+                    t.receipt_number,
+                    t.notes
+                FROM transactions t
+                WHERE t.transaction_id = %s
+                """,
+                (txn_id,),
+            )
+            
+            if record_to_delete.empty:
+                st.error("Transaction not found.")
+            else:
+                row = record_to_delete.iloc[0]
+            
+                deleted = exec_sql(
+                    "DELETE FROM transactions WHERE transaction_id = %s",
+                    (txn_id,),
+                    action="delete transaction",
                 )
-                st.success(f"Transaction #{txn_id} deleted successfully ✅")
-                refresh_data()
+            
+                if deleted:
+                    log_activity(
+                        "DELETE",
+                        "transactions",
+                        f"id={row['transaction_id']}, "
+                        f"project={row['project_id']}, "
+                        f"vendor={row['vendor_id']}, "
+                        f"phase={row['phase_id']}, "
+                        f"line_item={row['line_item_id']}, "
+                        f"amount={float(row['amount']):.2f}, "
+                        f"txn_date={row['txn_date']}, "
+                        f"receipt={row['receipt_number'] if pd.notnull(row['receipt_number']) else '—'}, "
+                        f"notes={row['notes'] if pd.notnull(row['notes']) else '—'}"
+                    )
+                    st.success(f"Transaction #{txn_id} deleted successfully ✅")
+                    refresh_data()
 
 def render_reports_tab() -> None:
     st.subheader("Reports")
