@@ -1571,7 +1571,6 @@ def render_new_transaction_tab(
             )
 
             st.session_state["last_saved_txn"] = {
-            st.session_state["last_saved_txn"] = {
                 "project_name": get_name_from_id(
                     projects, "project_id", "project_name", project_id
                 ),
