@@ -256,11 +256,11 @@ def get_cursor_connection():
     try:
         con = get_connection()
         if con.closed != 0:
-            raise Exception("Connection closed")
+            raise psycopg2.InterfaceError("Cached connection is closed")
         return con
     except Exception:
         st.cache_resource.clear()
-    return get_connection()
+        return get_connection()
 
 def log_activity(action, table, details=""):
     try:
@@ -418,16 +418,16 @@ def build_csv_export(table_name: str) -> bytes:
 
 def build_numbers_zip_export() -> bytes:
     output = BytesIO()
+    con = get_cursor_connection()
 
-    with closing(get_connection()) as con:
-        with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zf:
-            for table_name in EXPORT_TABLES:
-                df = pd.read_sql(f"SELECT * FROM {table_name}", con)
-                csv_bytes = df.to_csv(index=False).encode("utf-8")
-                zf.writestr(f"{table_name}.csv", csv_bytes)
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zf:
+        for table_name in EXPORT_TABLES:
+            df = pd.read_sql(f"SELECT * FROM {table_name}", con)
+            csv_bytes = df.to_csv(index=False).encode("utf-8")
+            zf.writestr(f"{table_name}.csv", csv_bytes)
 
     output.seek(0)
-    return output.getvalue()
+    return output.getvalue()()
 
 # ============================================================
 # GENERIC HELPERS
