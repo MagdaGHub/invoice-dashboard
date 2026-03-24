@@ -2384,6 +2384,10 @@ def render_reports_tab() -> None:
     if drivers_df.empty:
         st.info("No transaction data found yet.")
     else:
+        drivers_df["actual_amount"] = pd.to_numeric(drivers_df["actual_amount"], errors="coerce")
+        drivers_df = drivers_df.dropna(subset=["actual_amount", "line_item"])
+        drivers_df = drivers_df[drivers_df["actual_amount"] != 0]
+        
         st.dataframe(
             drivers_df[["category", "phase", "line_item", "actual_amount"]],
             use_container_width=True,
@@ -2391,7 +2395,7 @@ def render_reports_tab() -> None:
         )
 
         width, height = chart_size(len(drivers_df), base_height=30, max_height=1200)
-
+        
         drivers_chart = (
             alt.Chart(drivers_df)
             .mark_bar(color="#4AA511")
@@ -2414,7 +2418,7 @@ def render_reports_tab() -> None:
                     alt.Tooltip(
                         "actual_amount:Q",
                         title="Actual Spend",
-                        format="$%,.2f",
+                        format="$,.2f",
                     ),
                 ],
             )
@@ -2423,7 +2427,7 @@ def render_reports_tab() -> None:
 
         driver_labels = (
             alt.Chart(drivers_df)
-            .mark_text(align="left", baseline="middle", dx=5, fontSize=11)
+            .mark_text(align="left", baseline="middle", dx=5, fontSize=10)
             .encode(
                 x=alt.X("actual_amount:Q"),
                 y=alt.Y("line_item:N", sort="-x"),
