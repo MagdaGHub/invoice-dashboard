@@ -244,13 +244,20 @@ def init_session_state() -> None:
 
 DATABASE_URL = st.secrets["DATABASE_URL"]  # stored in Streamlit secrets
 
-#@st.cache_resource
+@st.cache_resource
 def get_connection():
     return psycopg2.connect(
         st.secrets["DATABASE_URL"],
-        #connect_timeout=5,
-        sslmode="require"
+        sslmode="require",
+        connect_timeout=5,
     )
+
+def get_cursor_connection():
+    con = get_connection()
+    if con.closed != 0:
+        st.cache_resource.clear()
+        con = get_connection()
+    return con
 
 def log_activity(action, table, details=""):
     try:
@@ -349,31 +356,40 @@ def get_transaction_by_id(txn_id: int):
     )
     return df.iloc[0].to_dict() if not df.empty else None
 
+def normalize_log_value(v):
+    if v is None or (isinstance(v, str) and v.strip() == ""):
+        return None
+    if pd.isna(v):
+        return None
+    if isinstance(v, pd.Timestamp):
+        return v.date().isoformat()
+    if isinstance(v, datetime):
+        return v.date().isoformat()
+    if isinstance(v, date):
+        return v.isoformat()
+    if isinstance(v, float):
+        return round(v, 2)
+    if isinstance(v, str):
+        return v.strip()
+    return v
+
 def build_change_log(old: dict, new: dict) -> str:
     changes = []
-
     fields = [
-        "project_id",
-        "vendor_id",
-        "phase_id",
-        "line_item_id",
-        "txn_date",
-        "amount",
-        "receipt_number",
-        "notes",
+        "project_id", "vendor_id", "phase_id", "line_item_id",
+        "txn_date", "amount", "receipt_number", "notes"
     ]
 
     for field in fields:
-        old_val = old.get(field)
-        new_val = new.get(field)
+        old_val = normalize_log_value(old.get(field))
+        new_val = normalize_log_value(new.get(field))
 
-        old_str = "—" if pd.isna(old_val) or old_val is None or str(old_val).strip() == "" else str(old_val)
-        new_str = "—" if pd.isna(new_val) or new_val is None or str(new_val).strip() == "" else str(new_val)
+        if old_val != new_val:
+            changes.append(
+                f"{field}: {'—' if old_val is None else old_val} → {'—' if new_val is None else new_val}"
+            )
 
-        if old_str != new_str:
-            changes.append(f"{field}: {old_str} → {new_str}")
-
-    return " | ".join(changes) if changes else "no changes"
+    return " | ".join(changes)
 
 # ============================================================
 # EXPORT HELPERS
@@ -1567,7 +1583,7 @@ def render_new_transaction_tab(
         "Amount",
         min_value=0.0,
         step=10.0,
-        format="%.2f",
+        format="$%,.2f",
         key="new_txn_amount",
     )
     txn_date = st.date_input(
@@ -1889,6 +1905,10 @@ def render_transactions_tab(
     grid = fdf[
         [
             "transaction_id",
+            "project_id",
+            "vendor_id",
+            "phase_id",
+            "line_item_id",
             "project_name",
             "category",
             "phase",
@@ -1902,7 +1922,6 @@ def render_transactions_tab(
     ].copy()
     
     grid["txn_date"] = pd.to_datetime(grid["txn_date"], errors="coerce")
-    grid["txn_date"] = grid["txn_date"].fillna("")
     grid["receipt_number"] = grid["receipt_number"].fillna("")
     grid["notes"] = grid["notes"].fillna("")
     grid["amount"] = pd.to_numeric(grid["amount"], errors="coerce")
@@ -1913,6 +1932,10 @@ def render_transactions_tab(
         hide_index=True,
         disabled=True if READ_ONLY else [
             "transaction_id",
+            "project_id",
+            "vendor_id",
+            "phase_id",
+            "line_item_id",
             "project_name",
             "category",
             "phase",
@@ -1920,6 +1943,10 @@ def render_transactions_tab(
             "vendor_name",
         ],
         column_config={
+            "project_id": None,
+            "vendor_id": None,
+            "phase_id": None,
+            "line_item_id": None,
             "transaction_id": st.column_config.NumberColumn("ID", width="small"),
             "project_name": st.column_config.TextColumn("Project", width="medium"),
             "category": st.column_config.TextColumn("Category", width="medium"),
@@ -1937,20 +1964,82 @@ def render_transactions_tab(
     )
 
     if not READ_ONLY and st.button("Save inline edits", type="primary"):
+        original = grid.copy()
+        new = edited.copy()
+    
+        original = original.set_index("transaction_id")
+        new = new.set_index("transaction_id")
+    
+        # normalize editable fields
+        original["txn_date"] = pd.to_datetime(original["txn_date"], errors="coerce")
+        new["txn_date"] = pd.to_datetime(new["txn_date"], errors="coerce")
+    
+        original["amount"] = pd.to_numeric(original["amount"], errors="coerce")
+        new["amount"] = pd.to_numeric(new["amount"], errors="coerce")
+    
+        for col in ["receipt_number", "notes"]:
+            original[col] = original[col].fillna("").astype(str).str.strip()
+            new[col] = new[col].fillna("").astype(str).str.strip()
+    
+        changed_ids = []
+    
+        for tid in new.index:
+            if tid not in original.index:
+                continue
+    
+            row_changed = False
+            for col in ["txn_date", "receipt_number", "amount", "notes"]:
+                old_val = original.at[tid, col]
+                new_val = new.at[tid, col]
+    
+                if pd.isna(old_val) and pd.isna(new_val):
+                    continue
+    
+                if col == "txn_date":
+                    old_val = old_val.date() if pd.notnull(old_val) else None
+                    new_val = new_val.date() if pd.notnull(new_val) else None
+    
+                if old_val != new_val:
+                    row_changed = True
+                    break
+    
+            if row_changed:
+                changed_ids.append(tid)
+    
         if not changed_ids:
             st.info("No changes to save.")
         else:
             success_count = 0
+   
             for tid in changed_ids:
                 row = new.loc[tid]
-                old_row = get_transaction_by_id(int(tid))
-    
+                old = original.loc[tid]
+            
+                old_row = {
+                    "project_id": old["project_id"] if "project_id" in original.columns else None,
+                    "vendor_id": old["vendor_id"] if "vendor_id" in original.columns else None,
+                    "phase_id": old["phase_id"] if "phase_id" in original.columns else None,
+                    "line_item_id": old["line_item_id"] if "line_item_id" in original.columns else None,
+                    "txn_date": old["txn_date"].date() if pd.notnull(old["txn_date"]) else None,
+                    "amount": float(old["amount"]) if pd.notnull(old["amount"]) else None,
+                    "receipt_number": (
+                        str(old["receipt_number"]).strip()
+                        if pd.notnull(old["receipt_number"]) and str(old["receipt_number"]).strip()
+                        else None
+                    ),
+                    "notes": (
+                        str(old["notes"]).strip()
+                        if pd.notnull(old["notes"]) and str(old["notes"]).strip()
+                        else None
+                    ),
+                }
+            
                 new_row = {
-                    "project_id": old_row["project_id"] if old_row else None,
-                    "vendor_id": old_row["vendor_id"] if old_row else None,
-                    "phase_id": old_row["phase_id"] if old_row else None,
-                    "line_item_id": old_row["line_item_id"] if old_row else None,
-                    "txn_date": row["txn_date"] if pd.notnull(row["txn_date"]) else None,
+                    "project_id": old_row["project_id"],
+                    "vendor_id": old_row["vendor_id"],
+                    "phase_id": old_row["phase_id"],
+                    "line_item_id": old_row["line_item_id"],
+                    "txn_date": row["txn_date"].date() if pd.notnull(row["txn_date"]) else None,
                     "amount": float(row["amount"]) if pd.notnull(row["amount"]) else None,
                     "receipt_number": (
                         str(row["receipt_number"]).strip()
@@ -1975,8 +2064,9 @@ def render_transactions_tab(
                         new_row["receipt_number"],
                         new_row["amount"],
                         new_row["notes"],
-                        tid,
+                        int(tid),
                     ),
+                    action="save inline edits",
                 )
     
                 if saved:
@@ -1996,7 +2086,7 @@ def render_transactions_tab(
             if success_count:
                 st.success(f"Saved {success_count} updated transaction(s). ✅")
                 refresh_data()
-
+                
     if not READ_ONLY:
         st.markdown("### Edit Project / Vendor / Phase / Line Item (safe dropdowns)")
     
@@ -2142,12 +2232,17 @@ def render_transactions_tab(
                 )
 
                 if saved and old_row:
-                    change_details = build_change_log(old_row, new_row)
-                    log_activity(
-                        "UPDATE",
-                        "transactions",
-                        f"id={int(st.session_state.edit_id)} | {change_details}"
-                    )
+                    try:
+                        change_details = build_change_log(old_row, new_row)
+                        if change_details:
+                            log_activity(
+                                "UPDATE",
+                                "transactions",
+                                f"id={int(st.session_state.edit_id)} | {change_details}"
+                            )
+                    except Exception as e:
+                        st.warning(f"Change was saved, but logging failed: {e}")
+                
                     st.success("Updated relational fields ✅")
                     refresh_data()
                     
@@ -2236,6 +2331,7 @@ def render_transactions_tab(
                 )
 
                 if deleted:
+                    amount_str = f"{float(row['amount']):.2f}" if pd.notnull(row["amount"]) else "—"
                     log_activity(
                         "DELETE",
                         "transactions",
@@ -2245,10 +2341,11 @@ def render_transactions_tab(
                         f"phase_id={row['phase_id']} | "
                         f"line_item_id={row['line_item_id']} | "
                         f"txn_date={row['txn_date'] if pd.notnull(row['txn_date']) else '—'} | "
-                        f"amount={f'{float(row['amount']):.2f}' if pd.notnull(row['amount']) else '—'} | "
+                        f"amount={amount_str} | "
                         f"receipt_number={row['receipt_number'] if pd.notnull(row['receipt_number']) else '—'} | "
                         f"notes={row['notes'] if pd.notnull(row['notes']) else '—'}"
                     )
+
                     st.success(f"Transaction #{txn_id} deleted successfully ✅")
                     refresh_data()
                     
@@ -2309,7 +2406,7 @@ def render_reports_tab() -> None:
                     alt.Tooltip(
                         "actual_amount:Q",
                         title="Actual Spend",
-                        format="$,.2f",
+                        format="$%,.2f",
                     ),
                 ],
             )
@@ -2973,6 +3070,7 @@ def render_vendor_admin_tab() -> None:
                         saved = exec_sql(
                             "UPDATE vendors SET vendor_name = %s WHERE vendor_id = %s;",
                             (vendor_name, int(edit_vendor_id)),
+                            action="save relational changes",
                         )
                         if saved:
                             log_activity(
@@ -3176,7 +3274,10 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except Exception:
-        st.error("Something unexpected happened in the app.")
-        st.info("Please refresh the page and try again.")
-        st.stop()
+    except Exception as e:
+        st.exception(e)
+        raise
+    #except Exception:
+     #   st.error("Something unexpected happened in the app.")
+      #  st.info("Please refresh the page and try again.")
+       # st.stop()
