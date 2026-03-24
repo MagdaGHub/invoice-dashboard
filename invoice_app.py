@@ -253,11 +253,14 @@ def get_connection():
     )
 
 def get_cursor_connection():
-    con = get_connection()
-    if con.closed != 0:
-        st.cache_resource.clear()
+    try:
         con = get_connection()
-    return con
+        if con.closed != 0:
+            raise Exception("Connection closed")
+        return con
+    except Exception:
+        st.cache_resource.clear()
+    return get_connection()
 
 def log_activity(action, table, details=""):
     try:
@@ -284,8 +287,8 @@ def show_db_error(action="work with the database"):
 
 def load_df(sql, params=None, action="load data"):
     try:
-        with closing(get_connection()) as con:
-            return pd.read_sql(sql, con, params=params)
+        con = get_cursor_connection()
+        return pd.read_sql(sql, con, params=params)
 
     except psycopg2.InterfaceError:
         show_db_error(action)
@@ -301,10 +304,10 @@ def load_df(sql, params=None, action="load data"):
 
 def exec_sql(sql, params=None, action="save data"):
     try:
-        with closing(get_connection()) as con:
-            with con.cursor() as cur:
-                cur.execute(sql, params)
-            con.commit()
+        con = get_cursor_connection()
+        with con.cursor() as cur:
+            cur.execute(sql, params)
+        con.commit()
         return True
 
     except psycopg2.InterfaceError:
@@ -2071,8 +2074,8 @@ def render_transactions_tab(
     
                 if saved:
                     try:
-                        if old_row:
-                            change_details = build_change_log(old_row, new_row)
+                        change_details = build_change_log(old_row, new_row)
+                        if change_details:
                             log_activity(
                                 "UPDATE",
                                 "transactions",
