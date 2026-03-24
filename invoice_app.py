@@ -1586,7 +1586,7 @@ def render_new_transaction_tab(
         "Amount",
         min_value=0.0,
         step=10.0,
-        format="$%,.2f",
+        format="%.2f",
         key="new_txn_amount",
     )
     txn_date = st.date_input(
