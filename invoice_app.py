@@ -255,9 +255,13 @@ def get_connection():
 def get_cursor_connection():
     try:
         con = get_connection()
-        if con.closed != 0:
-            raise psycopg2.InterfaceError("Cached connection is closed")
+
+        # check if connection is usable
+        with con.cursor() as cur:
+            cur.execute("SELECT 1")
+
         return con
+
     except Exception:
         st.cache_resource.clear()
         return get_connection()
@@ -270,9 +274,10 @@ def log_activity(action, table, details=""):
             VALUES (%s, %s, %s)
             """,
             (action, table, details),
+            action="log activity",
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logging.warning(f"Activity log failed: {e}")
 
 # Friendly error display
 def show_db_error(action="work with the database"):
@@ -427,7 +432,7 @@ def build_numbers_zip_export() -> bytes:
             zf.writestr(f"{table_name}.csv", csv_bytes)
 
     output.seek(0)
-    return output.getvalue()()
+    return output.getvalue()
 
 # ============================================================
 # GENERIC HELPERS
