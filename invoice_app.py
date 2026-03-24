@@ -329,6 +329,52 @@ def refresh_data() -> None:
     st.cache_data.clear()
     st.rerun()
 
+def get_transaction_by_id(txn_id: int):
+    df = load_df(
+        """
+        SELECT
+            transaction_id,
+            project_id,
+            vendor_id,
+            phase_id,
+            line_item_id,
+            txn_date,
+            amount,
+            receipt_number,
+            notes
+        FROM transactions
+        WHERE transaction_id = %s
+        """,
+        (txn_id,),
+    )
+    return df.iloc[0].to_dict() if not df.empty else None
+
+def build_change_log(old: dict, new: dict) -> str:
+    changes = []
+
+    fields = [
+        "project_id",
+        "vendor_id",
+        "phase_id",
+        "line_item_id",
+        "txn_date",
+        "amount",
+        "receipt_number",
+        "notes",
+    ]
+
+    for field in fields:
+        old_val = old.get(field)
+        new_val = new.get(field)
+
+        old_str = "—" if pd.isna(old_val) or old_val is None or str(old_val).strip() == "" else str(old_val)
+        new_str = "—" if pd.isna(new_val) or new_val is None or str(new_val).strip() == "" else str(new_val)
+
+        if old_str != new_str:
+            changes.append(f"{field}: {old_str} → {new_str}")
+
+    return " | ".join(changes) if changes else "no changes"
+
 # ============================================================
 # EXPORT HELPERS
 # ============================================================
@@ -1571,9 +1617,11 @@ def render_new_transaction_tab(
             log_activity(
                 "INSERT",
                 "transactions",
-                f"project={project_id}, vendor={vendor_id}, phase={phase_id}, "
-                f"line_item={line_item_id}, amount={float(amount):.2f}, "
-                f"txn_date={txn_date}, receipt={receipt_number.strip() or '—'}"
+                f"project_id={project_id} | vendor_id={vendor_id} | phase_id={phase_id} | "
+                f"line_item_id={line_item_id} | txn_date={txn_date} | "
+                f"amount={float(amount):.2f} | "
+                f"receipt_number={receipt_number.strip() or '—'} | "
+                f"notes={notes.strip() or '—'}"
             )
 
             st.session_state["last_saved_txn"] = {
@@ -1889,31 +1937,33 @@ def render_transactions_tab(
     )
 
     if not READ_ONLY and st.button("Save inline edits", type="primary"):
-        # prevent subtotal/header rows from being treated like real transactions
-        original = grid[grid["transaction_id"].notna()].copy().set_index("transaction_id")
-        new = edited[edited["transaction_id"].notna()].copy().set_index("transaction_id")
-
-        changed_ids: list[int] = []
-
-        for tid in new.index:
-            if tid not in original.index:
-                continue
-
-            old_vals = original.loc[tid, EDITABLE_TXN_COLUMNS].copy()
-            new_vals = new.loc[tid, EDITABLE_TXN_COLUMNS].copy()
-
-            old_vals = old_vals.fillna("").astype(str)
-            new_vals = new_vals.fillna("").astype(str)
-
-            if not old_vals.equals(new_vals):
-                changed_ids.append(int(tid))
-
         if not changed_ids:
             st.info("No changes to save.")
         else:
             success_count = 0
             for tid in changed_ids:
                 row = new.loc[tid]
+                old_row = get_transaction_by_id(int(tid))
+
+                new_row = {
+                    "project_id": old_row["project_id"] if old_row else None,
+                    "vendor_id": old_row["vendor_id"] if old_row else None,
+                    "phase_id": old_row["phase_id"] if old_row else None,
+                    "line_item_id": old_row["line_item_id"] if old_row else None,
+                    "txn_date": str(row["txn_date"]) if pd.notnull(row["txn_date"]) else None,
+                    "amount": float(row["amount"]) if pd.notnull(row["amount"]) else None,
+                    "receipt_number": (
+                        str(row["receipt_number"]).strip()
+                        if pd.notnull(row["receipt_number"]) and str(row["receipt_number"]).strip()
+                        else None
+                    ),
+                    "notes": (
+                        str(row["notes"]).strip()
+                        if pd.notnull(row["notes"]) and str(row["notes"]).strip()
+                        else None
+                    ),
+                }
+
                 saved = exec_sql(
                     """
                     UPDATE transactions
@@ -1921,25 +1971,20 @@ def render_transactions_tab(
                     WHERE transaction_id = %s;
                     """,
                     (
-                        str(row["txn_date"]) if pd.notnull(row["txn_date"]) else None,
-                        str(row["receipt_number"]).strip()
-                        if pd.notnull(row["receipt_number"])
-                        and str(row["receipt_number"]).strip()
-                        else None,
-                        float(row["amount"]) if pd.notnull(row["amount"]) else None,
-                        str(row["notes"]).strip()
-                        if pd.notnull(row["notes"]) and str(row["notes"]).strip()
-                        else None,
+                        new_row["txn_date"],
+                        new_row["receipt_number"],
+                        new_row["amount"],
+                        new_row["notes"],
                         tid,
                     ),
                 )
-                if saved:
+
+                if saved and old_row:
+                    change_details = build_change_log(old_row, new_row)
                     log_activity(
                         "UPDATE",
                         "transactions",
-                        f"id={tid}, txn_date={str(row['txn_date']) if pd.notnull(row['txn_date']) else 'None'}, "
-                        f"receipt={str(row['receipt_number']).strip() if pd.notnull(row['receipt_number']) else 'None'}, "
-                        f"amount={float(row['amount']) if pd.notnull(row['amount']) else 'None'}"
+                        f"id={tid} | {change_details}"
                     )
                     success_count += 1
 
@@ -2061,8 +2106,21 @@ def render_transactions_tab(
                             li_df, "line_item_id", "name", x
                         ),
                     )
-    
+             
             if st.button("Save relational changes", type="primary"):
+                old_row = get_transaction_by_id(int(st.session_state.edit_id))
+
+                new_row = {
+                    "project_id": st.session_state.edit_project,
+                    "vendor_id": int(st.session_state.edit_vendor),
+                    "phase_id": int(st.session_state.edit_phase),
+                    "line_item_id": int(st.session_state.edit_line_item),
+                    "txn_date": old_row["txn_date"] if old_row else None,
+                    "amount": old_row["amount"] if old_row else None,
+                    "receipt_number": old_row["receipt_number"] if old_row else None,
+                    "notes": old_row["notes"] if old_row else None,
+                }
+
                 saved = exec_sql(
                     """
                     UPDATE transactions
@@ -2070,27 +2128,24 @@ def render_transactions_tab(
                     WHERE transaction_id = %s
                     """,
                     (
-                        st.session_state.edit_project,
-                        int(st.session_state.edit_vendor),
-                        int(st.session_state.edit_phase),
-                        int(st.session_state.edit_line_item),
+                        new_row["project_id"],
+                        new_row["vendor_id"],
+                        new_row["phase_id"],
+                        new_row["line_item_id"],
                         int(st.session_state.edit_id),
                     ),
                 )
-    
-                if saved:
+
+                if saved and old_row:
+                    change_details = build_change_log(old_row, new_row)
                     log_activity(
                         "UPDATE",
                         "transactions",
-                        f"id={int(st.session_state.edit_id)}, "
-                        f"project={st.session_state.edit_project}, "
-                        f"vendor={int(st.session_state.edit_vendor)}, "
-                        f"phase={int(st.session_state.edit_phase)}, "
-                        f"line_item={int(st.session_state.edit_line_item)}"
+                        f"id={int(st.session_state.edit_id)} | {change_details}"
                     )
                     st.success("Updated relational fields ✅")
                     refresh_data()
-    
+                    
         st.markdown("### Delete Transaction")
     
         col1, col2 = st.columns([1, 1])
@@ -2142,15 +2197,10 @@ def render_transactions_tab(
                         "txn_date": "Date",
                     },
                 )
-    
+
         if confirm and st.button("Delete Transaction", use_container_width=True):
             txn_id = int(delete_id)
-    
-            deleted = exec_sql(
-                "DELETE FROM transactions WHERE transaction_id = %s;",
-                (txn_id,),
-            )
-    
+
             record_to_delete = load_df(
                 """
                 SELECT
@@ -2168,35 +2218,35 @@ def render_transactions_tab(
                 """,
                 (txn_id,),
             )
-            
+
             if record_to_delete.empty:
                 st.error("Transaction not found.")
             else:
                 row = record_to_delete.iloc[0]
-            
+
                 deleted = exec_sql(
-                    "DELETE FROM transactions WHERE transaction_id = %s",
+                    "DELETE FROM transactions WHERE transaction_id = %s;",
                     (txn_id,),
                     action="delete transaction",
                 )
-            
+
                 if deleted:
                     log_activity(
                         "DELETE",
                         "transactions",
-                        f"id={row['transaction_id']}, "
-                        f"project={row['project_id']}, "
-                        f"vendor={row['vendor_id']}, "
-                        f"phase={row['phase_id']}, "
-                        f"line_item={row['line_item_id']}, "
-                        f"amount={float(row['amount']):.2f}, "
-                        f"txn_date={row['txn_date']}, "
-                        f"receipt={row['receipt_number'] if pd.notnull(row['receipt_number']) else '—'}, "
+                        f"id={row['transaction_id']} | "
+                        f"project_id={row['project_id']} | "
+                        f"vendor_id={row['vendor_id']} | "
+                        f"phase_id={row['phase_id']} | "
+                        f"line_item_id={row['line_item_id']} | "
+                        f"txn_date={row['txn_date'] if pd.notnull(row['txn_date']) else '—'} | "
+                        f"amount={f'{float(row['amount']):.2f}' if pd.notnull(row['amount']) else '—'} | "
+                        f"receipt_number={row['receipt_number'] if pd.notnull(row['receipt_number']) else '—'} | "
                         f"notes={row['notes'] if pd.notnull(row['notes']) else '—'}"
                     )
                     st.success(f"Transaction #{txn_id} deleted successfully ✅")
                     refresh_data()
-
+                    
 def render_reports_tab() -> None:
     st.subheader("Reports")
     df = load_transactions_joined()
