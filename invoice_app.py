@@ -1944,13 +1944,13 @@ def render_transactions_tab(
             for tid in changed_ids:
                 row = new.loc[tid]
                 old_row = get_transaction_by_id(int(tid))
-
+    
                 new_row = {
                     "project_id": old_row["project_id"] if old_row else None,
                     "vendor_id": old_row["vendor_id"] if old_row else None,
                     "phase_id": old_row["phase_id"] if old_row else None,
                     "line_item_id": old_row["line_item_id"] if old_row else None,
-                    "txn_date": str(row["txn_date"]) if pd.notnull(row["txn_date"]) else None,
+                    "txn_date": row["txn_date"] if pd.notnull(row["txn_date"]) else None,
                     "amount": float(row["amount"]) if pd.notnull(row["amount"]) else None,
                     "receipt_number": (
                         str(row["receipt_number"]).strip()
@@ -1963,7 +1963,7 @@ def render_transactions_tab(
                         else None
                     ),
                 }
-
+    
                 saved = exec_sql(
                     """
                     UPDATE transactions
@@ -1978,16 +1978,21 @@ def render_transactions_tab(
                         tid,
                     ),
                 )
-
-                if saved and old_row:
-                    change_details = build_change_log(old_row, new_row)
-                    log_activity(
-                        "UPDATE",
-                        "transactions",
-                        f"id={tid} | {change_details}"
-                    )
-                    success_count += 1
-
+    
+                if saved:
+                    try:
+                        if old_row:
+                            change_details = build_change_log(old_row, new_row)
+                            log_activity(
+                                "UPDATE",
+                                "transactions",
+                                f"id={int(tid)} | {change_details}"
+                            )
+                        success_count += 1
+                    except Exception as e:
+                        st.error(f"Update logging failed for transaction {tid}: {e}")
+                        success_count += 1
+    
             if success_count:
                 st.success(f"Saved {success_count} updated transaction(s). ✅")
                 refresh_data()
