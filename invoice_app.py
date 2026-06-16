@@ -472,20 +472,32 @@ def pretty_report_table(
     currency_cols = currency_cols or []
     percent_cols = percent_cols or []
     variance_cols = variance_cols or []
-    fmt: dict[str, str] = {}
+
+    display_df = df.copy()
+
+    # Force formatted columns to be real numbers
+    for col in currency_cols + percent_cols + variance_cols:
+        if col in display_df.columns:
+            display_df[col] = pd.to_numeric(display_df[col], errors="coerce")
+
+    fmt = {}
+
     for col in currency_cols:
-        if col in df.columns:
+        if col in display_df.columns:
             fmt[col] = f"${{:,.{decimals}f}}"
+
     for col in percent_cols:
-        if col in df.columns:
+        if col in display_df.columns:
             fmt[col] = "{:,.1f}%"
+
     styler = (
-        df.style.format(fmt, na_rep="—").set_properties(
-            **{"text-align": "left", "white-space": "nowrap"}
-        )
+        display_df.style
+        .format(fmt, na_rep="—")
+        .set_properties(**{"text-align": "left", "white-space": "nowrap"})
     )
+
     for col in variance_cols:
-        if col in df.columns:
+        if col in display_df.columns:
             styler = styler.map(
                 lambda v: (
                     "color: #D62728; font-weight: 600;"
@@ -496,6 +508,7 @@ def pretty_report_table(
                 ),
                 subset=[col],
             )
+
     styler = styler.apply(
         lambda row: [
             "font-weight:700; background-color:#F3F4F6;"
@@ -505,6 +518,7 @@ def pretty_report_table(
         ],
         axis=1,
     )
+
     return styler
 
 def get_name_from_id(df: pd.DataFrame, id_col: str, name_col: str, value):
